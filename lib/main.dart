@@ -43,7 +43,7 @@ class MyApp extends StatelessWidget {
               contentTextStyle: const TextStyle(color: Colors.white)),
           cardTheme: const CardTheme(
             color: Color(0xff161616),
-            margin: EdgeInsets.all(24),
+            margin: EdgeInsets.all(16),
           ),
           iconTheme: IconThemeData(color: Colors.grey.shade200),
           switchTheme: SwitchThemeData(
@@ -280,7 +280,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       initialValue: launcherConfig.lePath,
                       autovalidateMode: AutovalidateMode.onUserInteraction,
                       validator: (value) {
-                        if (value != null && !value.endsWith("LEProc.exe")) {
+                        if (value != null &&
+                            value != "" &&
+                            !value.endsWith("LEProc.exe")) {
                           return "Path must point to LEProc.exe, LocaleEmulator's main executable.";
                         }
                         return null;

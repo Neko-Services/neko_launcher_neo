@@ -4,6 +4,7 @@ import "dart:convert";
 import "dart:io";
 import "package:intl/intl.dart";
 import "package:file_picker/file_picker.dart";
+import "package:charts_flutter/flutter.dart" as charts;
 
 import 'package:neko_launcher_neo/main.dart';
 import 'package:neko_launcher_neo/src/stylesheet.dart';
@@ -22,7 +23,7 @@ class Game extends ChangeNotifier {
   bool nsfw = false;
   late ImageProvider<Object> imgProvider;
 
-  final datePattern = DateFormat("ddMMyyyy");
+  final datePattern = DateFormat("yyyy-MM-dd");
 
   Game(this.path) {
     update();
@@ -61,8 +62,8 @@ class Game extends ChangeNotifier {
     var end = DateTime.now();
     var start = end.subtract(const Duration(days: 28));
     var difference = end.difference(start);
-    var days =
-        List.generate(difference.inDays, (i) => start.add(Duration(days: i)));
+    var days = List.generate(
+        difference.inDays + 1, (i) => start.add(Duration(days: i)));
     var oldAvtivity = activity;
     Map<String, dynamic> newActivity = {};
     for (var day in days) {
@@ -192,6 +193,13 @@ class Game extends ChangeNotifier {
   }
 }
 
+class ActivitySeries {
+  final DateTime date;
+  final int time;
+
+  ActivitySeries({required this.date, required this.time});
+}
+
 class GameButton extends StatefulWidget {
   final Game game;
   final void Function() onTap;
@@ -316,6 +324,45 @@ class _GameButtonState extends State<GameButton> {
   }
 }
 
+class NekoActivityChart extends StatelessWidget {
+  final List<ActivitySeries> data;
+
+  const NekoActivityChart({Key? key, required this.data}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final series = [
+      charts.Series<ActivitySeries, DateTime>(
+        id: 'Activity',
+        domainFn: (dynamic activity, _) => activity.date,
+        measureFn: (dynamic activity, _) => activity.time,
+        colorFn: (dynamic activity, _) => charts.ColorUtil.fromDartColor(
+            Theme.of(context).colorScheme.primary),
+        data: data,
+      )
+    ];
+
+    return charts.TimeSeriesChart(
+      series,
+      animate: true,
+      dateTimeFactory: const charts.LocalDateTimeFactory(),
+      // domainAxis: charts.DateTimeAxisSpec(
+      //     viewport: charts.DateTimeExtents(
+      //         start: DateTime.now()..subtract(const Duration(days: 28)),
+      //         end: DateTime.now())),
+      behaviors: [
+        charts.SeriesLegend(
+          position: charts.BehaviorPosition.end,
+          horizontalFirst: false,
+          cellPadding: EdgeInsets.only(right: 4.0, bottom: 4.0),
+          showMeasures: true,
+          measureFormatter: (num? value) => value.toString(),
+        ),
+      ],
+    );
+  }
+}
+
 class GameDetails extends StatefulWidget {
   final Game game;
 
@@ -393,6 +440,11 @@ class GameDetailsState extends State<GameDetails> {
   @override
   Widget build(BuildContext context) {
     var time = widget.game.prettyTime();
+    var activityData = <ActivitySeries>[];
+    widget.game.activity.forEach((key, value) {
+      activityData.add(ActivitySeries(
+          date: widget.game.datePattern.parse(key), time: value));
+    });
     return Stack(
       children: [
         Container(
@@ -591,7 +643,9 @@ class GameDetailsState extends State<GameDetails> {
                     Expanded(
                         child: NekoCard(
                       title: "Activity",
-                      body: Text(widget.game.desc),
+                      body: SizedBox(
+                          height: 250,
+                          child: NekoActivityChart(data: activityData)),
                     ))
                   ],
                 ),
