@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'dart:math' as maths;
 import 'package:flutter/material.dart';
 import "dart:convert";
 import "dart:io";
@@ -18,7 +19,7 @@ class Game extends ChangeNotifier {
   int time = 0;
   List<dynamic> tags = [];
   Map<String, dynamic> activity = {};
-  bool? emulate = false;
+  bool emulate = false;
   bool favourite = false;
   bool nsfw = false;
   late ImageProvider<Object> imgProvider;
@@ -81,6 +82,7 @@ class Game extends ChangeNotifier {
     desc = json["desc"];
     time = json["time"];
     tags = json["tags"];
+    tags.sort();
     activity = json["activity"];
     emulate = json["emulate"] ?? false;
     favourite = json["is_favourite"] ?? false;
@@ -329,11 +331,25 @@ class NekoActivityChart extends StatelessWidget {
 
   const NekoActivityChart({Key? key, required this.data}) : super(key: key);
 
+  String timeFormatter(num? value) {
+    if (value != null) {
+      if (value > 3600) {
+        return "${(value / 3600).toStringAsFixed(1)}h";
+      } else if (value > 60) {
+        return "${(value / 60).toStringAsFixed(0)}m";
+      } else {
+        return "${value.toStringAsFixed(0)}s";
+      }
+    } else {
+      return "";
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final series = [
       charts.Series<ActivitySeries, DateTime>(
-        id: 'Activity',
+        id: 'Time',
         domainFn: (dynamic activity, _) => activity.date,
         measureFn: (dynamic activity, _) => activity.time,
         colorFn: (dynamic activity, _) => charts.ColorUtil.fromDartColor(
@@ -342,21 +358,60 @@ class NekoActivityChart extends StatelessWidget {
       )
     ];
 
+    var max = data.map((d) => d.time).reduce(maths.max);
+    List<charts.TickSpec<num>> timeTicks = [];
+    if (max > 7200) {
+      for (var i = 0; i <= (max ~/ 3600) + 1; i++) {
+        timeTicks.add(charts.TickSpec(i * 3600));
+      }
+    } else if (max > 1800) {
+      for (var i = 0; i <= (max ~/ 1800) + 1; i++) {
+        timeTicks.add(charts.TickSpec(i * 1800));
+      }
+    } else {
+      for (var i = 0; i <= (max ~/ 300) + 1; i++) {
+        timeTicks.add(charts.TickSpec(i * 300));
+      }
+    }
+
+    List<charts.TickSpec<DateTime>> dateTicks =
+        data.map((e) => charts.TickSpec(e.date)).toList();
+
     return charts.TimeSeriesChart(
       series,
       animate: true,
-      dateTimeFactory: const charts.LocalDateTimeFactory(),
-      // domainAxis: charts.DateTimeAxisSpec(
-      //     viewport: charts.DateTimeExtents(
-      //         start: DateTime.now()..subtract(const Duration(days: 28)),
-      //         end: DateTime.now())),
+      defaultRenderer: charts.BarRendererConfig<DateTime>(),
+      primaryMeasureAxis: charts.NumericAxisSpec(
+        renderSpec: charts.GridlineRendererSpec(
+          lineStyle: charts.LineStyleSpec(
+            thickness: 1,
+            color: charts.ColorUtil.fromDartColor(Colors.grey.shade800),
+          ),
+        ),
+        tickProviderSpec: charts.StaticNumericTickProviderSpec(timeTicks),
+        tickFormatterSpec: charts.BasicNumericTickFormatterSpec(timeFormatter),
+      ),
+      domainAxis: charts.DateTimeAxisSpec(
+        renderSpec: const charts.SmallTickRendererSpec(
+          labelCollisionOffsetFromAxisPx: 26,
+          labelCollisionOffsetFromTickPx: 28,
+          labelCollisionRotation: -45,
+        ),
+        tickProviderSpec: charts.StaticDateTimeTickProviderSpec(dateTicks),
+        tickFormatterSpec: const charts.AutoDateTimeTickFormatterSpec(
+          day: charts.TimeFormatterSpec(
+            format: 'dd MMM',
+            transitionFormat: 'dd MMM',
+          ),
+        ),
+      ),
       behaviors: [
         charts.SeriesLegend(
           position: charts.BehaviorPosition.end,
           horizontalFirst: false,
           cellPadding: EdgeInsets.only(right: 4.0, bottom: 4.0),
           showMeasures: true,
-          measureFormatter: (num? value) => value.toString(),
+          measureFormatter: timeFormatter,
         ),
       ],
     );
@@ -400,7 +455,8 @@ class GameDetailsState extends State<GameDetails> {
     stdout.writeln("Started playing");
     var start = DateTime.now();
     setState(() => canPlay = false);
-    Process.run(exec, args, runInShell: true).then((value) {
+    Process.run(exec, args, runInShell: widget.game.emulate ? false : true)
+        .then((value) {
       stdout.writeln("Finished playing");
       var end = DateTime.now();
       var diff = end.difference(start);
