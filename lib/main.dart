@@ -1,11 +1,13 @@
 import "dart:io";
 import "package:flutter/material.dart";
 import "package:file_picker/file_picker.dart";
-import 'package:neko_launcher_neo/src/stylesheet.dart';
 import "package:window_size/window_size.dart";
+import "package:supabase_flutter/supabase_flutter.dart";
 
 import "src/games.dart";
+import "src/stylesheet.dart";
 import "src/settings.dart";
+import "src/social.dart";
 
 final navigatorKey = GlobalKey<NavigatorState>();
 final listKey = GlobalKey<GameListState>();
@@ -16,6 +18,9 @@ final gamesFolder =
 final launcherConfig = LauncherConfig(
     File(Platform.environment["APPDATA"]! + "\\neko-launcher\\config.json"));
 
+late final Supabase supabase;
+Map<String, dynamic>? userProfile;
+
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
   setWindowTitle("Neko Launcher");
@@ -23,6 +28,11 @@ void main() {
   if (!gamesFolder.existsSync()) {
     gamesFolder.createSync(recursive: true);
   }
+  Supabase.initialize(
+      url: "https://byxhhsabmioakiwfrcud.supabase.co",
+      anonKey:
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNjQyMjA1NDE5LCJleHAiOjE5NTc3ODE0MTl9.DLp4O4UnN0-2JkjCArdCXt87AYd4dvaRbf_mPRBOLIo");
+  supabase = Supabase.instance;
   runApp(const MyApp());
 }
 
@@ -85,6 +95,7 @@ class MyApp extends StatelessWidget {
       home: const MainScreen(title: 'Neko Launcher'),
       routes: <String, WidgetBuilder>{
         "/settings": (BuildContext context) => const SettingsScreen(),
+        "/login": (BuildContext context) => const SignIn(),
       },
     );
   }
@@ -142,12 +153,33 @@ class Home extends StatelessWidget {
               style: Theme.of(context).textTheme.headline4,
               textAlign: TextAlign.center,
             ),
-            IconButton(
-                tooltip: "Launcher settings",
-                splashRadius: Styles.splash,
-                onPressed: () => Navigator.of(context, rootNavigator: true)
-                    .pushNamed("/settings"),
-                icon: const Icon(Icons.settings)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                    tooltip: "Launcher settings",
+                    splashRadius: Styles.splash,
+                    onPressed: () => Navigator.of(context, rootNavigator: true)
+                        .pushNamed("/settings"),
+                    icon: const Icon(Icons.settings)),
+                IconButton(
+                    tooltip: "Social",
+                    splashRadius: Styles.splash,
+                    onPressed: () => {
+                          if (supabase.client.auth.currentUser != null)
+                            {
+                              navigatorKey.currentState!
+                                  .pushReplacementNamed("/social")
+                            }
+                          else
+                            {
+                              Navigator.of(context, rootNavigator: true)
+                                  .pushNamed("/login")
+                            }
+                        },
+                    icon: const Icon(Icons.person)),
+              ],
+            ),
           ],
         ),
       ),
@@ -184,6 +216,9 @@ class _MainScreenState extends State<MainScreen> {
                   builder = (BuildContext context) => GameConfig(
                         game: settings.arguments as Game,
                       );
+                  break;
+                case "/social":
+                  builder = (BuildContext context) => const Social();
                   break;
                 default:
                   throw Exception('Invalid route: ${settings.name}');
