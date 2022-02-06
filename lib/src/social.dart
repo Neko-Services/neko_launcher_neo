@@ -1,7 +1,94 @@
 import 'dart:io';
 
+import 'package:fimber_io/fimber_io.dart';
 import 'package:flutter/material.dart';
 import 'package:neko_launcher_neo/main.dart';
+import 'package:neko_launcher_neo/src/stylesheet.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
+enum ActivityType { offline, online, game }
+
+class NekoUser extends ChangeNotifier {
+  String uid;
+  String name;
+  ActivityType activityType;
+  String? activity;
+  DateTime? lastActivity;
+  late final RealtimeSubscription subscription;
+
+  NekoUser(
+      {required this.uid,
+      required this.name,
+      required this.activityType,
+      required this.activity,
+      required this.lastActivity}) {
+    Fimber.i("Creating $name's profile. (UID: $uid)");
+    subscription = supabase.client
+        .from("profiles:id=eq.$uid")
+        .on(SupabaseEventTypes.update, (data) {
+      stdout.writeln("Updating profile $uid.");
+      Fimber.i("(User: $uid) Updating profile.");
+      name = data.newRecord!["username"];
+      activityType =
+          ActivityType.values[data.newRecord!["activity_type"] as int];
+      activity = data.newRecord!["activity_details"];
+      lastActivity = data.newRecord!["activity_timestamp"] != null
+          ? DateTime.parse(data.newRecord!["activity_timestamp"])
+          : null;
+      notifyListeners();
+    }).subscribe();
+  }
+
+  factory NekoUser.fromRow(Map<String, dynamic> row) {
+    return NekoUser(
+      uid: row["id"],
+      name: row["username"],
+      activityType: ActivityType.values[row["activity_type"] as int],
+      activity: row["activity_details"],
+      lastActivity: row["activity_timestamp"] != null
+          ? DateTime.parse(row["activity_timestamp"])
+          : null,
+    );
+  }
+
+  void updateActivity(ActivityType type, {String? details}) {
+    stdout.writeln("Updating activity");
+    supabase.client
+        .from("profiles:id=eq.$uid")
+        .update({
+          "activity_type": type.index,
+          "activity_details": details,
+          "activity_timestamp": DateTime.now().toIso8601String()
+        })
+        .execute()
+        .then((_) {
+          stdout.writeln("Executed update");
+        });
+  }
+
+  Widget activityText() {
+    switch (activityType) {
+      case ActivityType.offline:
+        return const Text.rich(
+          TextSpan(text: "Offline"),
+          style: TextStyle(color: Colors.grey),
+        );
+      case ActivityType.online:
+        return const Text.rich(
+          TextSpan(text: "Online"),
+          style: TextStyle(color: Colors.blue),
+        );
+      case ActivityType.game:
+        return Text.rich(
+          TextSpan(children: [
+            const TextSpan(text: "Playing "),
+            TextSpan(text: activity, style: Styles.bold)
+          ]),
+          style: const TextStyle(color: Colors.green),
+        );
+    }
+  }
+}
 
 class Social extends StatefulWidget {
   const Social({Key? key}) : super(key: key);
@@ -13,17 +100,18 @@ class Social extends StatefulWidget {
 class _SocialState extends State<Social> {
   bool _isLoading = true;
 
-  void _load() {
-    supabase.client
+  void refreshState() {
+    setState(() {});
+  }
+
+  Future<void> _load() async {
+    await supabase.client
         .from("profiles")
         .select()
         .eq("id", supabase.client.auth.currentUser!.id)
         .execute()
         .then((response) {
-      setState(() {
-        userProfile = response.data[0];
-        _isLoading = false;
-      });
+      userProfile = NekoUser.fromRow(response.data[0]);
     });
   }
 
@@ -31,20 +119,33 @@ class _SocialState extends State<Social> {
   void initState() {
     super.initState();
     if (userProfile == null) {
-      _load();
+      _load().then((_) {
+        if (userProfile != null) {
+          setState(() {
+            _isLoading = false;
+            userProfile!.addListener(refreshState);
+          });
+        }
+      });
     } else {
       _isLoading = false;
+      userProfile!.addListener(refreshState);
     }
-    _load();
+  }
+
+  @override
+  void dispose() {
+    userProfile!.removeListener(refreshState);
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return _isLoading
-        ? const Center(child: CircularProgressIndicator())
+        ? const Scaffold(body: Center(child: CircularProgressIndicator()))
         : Scaffold(
             appBar: AppBar(
-              title: Text("${userProfile?["username"]}'s Social"),
+              title: Text("${userProfile!.name}'s Social"),
               actions: [
                 IconButton(
                   tooltip: "Log out",
@@ -57,6 +158,81 @@ class _SocialState extends State<Social> {
                     );
                   },
                 ),
+              ],
+            ),
+            body: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          children: [
+                            // CircleAvatar(
+                            //   radius: 64,
+                            //   backgroundColor: Colors.transparent,
+                            //   backgroundImage:
+                            //       NetworkImage(userProfile!.avatar),
+                            //   child: IconButton(
+                            //     splashRadius: 64,
+                            //     color: Colors.transparent,
+                            //     tooltip: "Change avatar",
+                            //     constraints: BoxConstraints(
+                            //         minHeight: 128, minWidth: 128),
+                            //     icon: Icon(Icons.camera_alt),
+                            //     onPressed: () {
+                            //       {
+                            //         FilePicker.platform
+                            //             .pickFiles(
+                            //           type: FileType.image,
+                            //         )
+                            //             .then((result) {
+                            //           if (result != null) {
+                            //             supabase.client.storage
+                            //                 .from("avatars")
+                            //                 .upload(
+                            //                   "${userProfile!.uid}-${result.files.single.name}",
+                            //                   File(result.files.single.path!),
+                            //                 )
+                            //                 .then((response) {
+                            //               supabase.client
+                            //                   .from("profiles")
+                            //                   .update({
+                            //                     "avatar_url": response.data,
+                            //                   })
+                            //                   .eq("id", userProfile!.uid)
+                            //                   .execute();
+                            //             });
+                            //           }
+                            //         });
+                            //       }
+                            //     },
+                            //   ),
+                            // ),
+                            Text(
+                              userProfile!.name,
+                              style: TextStyle(fontSize: 24),
+                            ),
+                            userProfile?.activityText() ??
+                                const SizedBox.shrink(),
+                            TextButton(
+                                onPressed: () {
+                                  supabase.client
+                                      .from("profiles")
+                                      .update({
+                                        "username": "maak4422",
+                                      })
+                                      .eq("id", userProfile!.uid)
+                                      .execute();
+                                },
+                                child: Text("Change username"))
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                )
               ],
             ),
           );
@@ -278,7 +454,8 @@ class _SignInState extends State<SignIn> {
                                             stdout.writeln(
                                                 response.error?.message);
                                           } else {
-                                            userProfile = response.data;
+                                            userProfile =
+                                                NekoUser.fromRow(response.data);
                                             Navigator.of(context).pop();
                                           }
                                         }, onError: (error) {

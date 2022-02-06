@@ -98,7 +98,21 @@ packages:
       name: file_picker
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "4.3.1"
+    version: "4.3.3"
+  fimber:
+    dependency: transitive
+    description:
+      name: fimber
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.6.5"
+  fimber_io:
+    dependency: "direct main"
+    description:
+      name: fimber_io
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.6.5"
   flutter:
     dependency: "direct main"
     description: flutter
@@ -134,7 +148,7 @@ packages:
       name: gotrue
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.1.3"
+    version: "0.1.5"
   hive:
     dependency: transitive
     description:
@@ -316,7 +330,7 @@ packages:
       name: realtime_client
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.1.13"
+    version: "0.1.15"
   sky_engine:
     dependency: transitive
     description: flutter
@@ -363,14 +377,14 @@ packages:
       name: supabase
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.2.12"
+    version: "0.2.14"
   supabase_flutter:
     dependency: "direct main"
     description:
       name: supabase_flutter
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "0.2.10"
+    version: "0.2.12"
   term_glyph:
     dependency: transitive
     description:
@@ -447,14 +461,14 @@ packages:
       name: url_launcher_linux
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "2.0.2"
+    version: "2.0.3"
   url_launcher_macos:
     dependency: transitive
     description:
       name: url_launcher_macos
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "2.0.2"
+    version: "2.0.3"
   url_launcher_platform_interface:
     dependency: transitive
     description:
@@ -496,7 +510,7 @@ packages:
       name: win32
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "2.3.3"
+    version: "2.3.9"
   window_size:
     dependency: "direct main"
     description:

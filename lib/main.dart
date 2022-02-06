@@ -1,8 +1,10 @@
 import "dart:io";
 import "package:flutter/material.dart";
 import "package:file_picker/file_picker.dart";
+import 'package:neko_launcher_neo/src/daemon.dart';
 import "package:window_size/window_size.dart";
 import "package:supabase_flutter/supabase_flutter.dart";
+import "package:fimber_io/fimber_io.dart";
 
 import "src/games.dart";
 import "src/stylesheet.dart";
@@ -19,20 +21,28 @@ final launcherConfig = LauncherConfig(
     File(Platform.environment["APPDATA"]! + "\\neko-launcher\\config.json"));
 
 late final Supabase supabase;
-Map<String, dynamic>? userProfile;
+final GameDaemon gameDaemon = GameDaemon();
+NekoUser? userProfile;
 
-void main() {
-  WidgetsFlutterBinding.ensureInitialized();
-  setWindowTitle("Neko Launcher");
-  setWindowMinSize(const Size(1000, 563));
+void main() async {
+  Fimber.plantTree(TimedRollingFileTree());
+  Fimber.i("Starting Neko Launcher...");
+  Fimber.i("Ensuring game folder exists at ${gamesFolder.absolute}.");
   if (!gamesFolder.existsSync()) {
     gamesFolder.createSync(recursive: true);
   }
-  Supabase.initialize(
+  WidgetsFlutterBinding.ensureInitialized();
+  Fimber.i("Setting window title.");
+  setWindowTitle("Neko Launcher");
+  Fimber.i("Setting minimum window size.");
+  setWindowMinSize(const Size(1000, 563));
+  Fimber.i("Initializing Supabase connection.");
+  await Supabase.initialize(
       url: "https://byxhhsabmioakiwfrcud.supabase.co",
       anonKey:
           "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNjQyMjA1NDE5LCJleHAiOjE5NTc3ODE0MTl9.DLp4O4UnN0-2JkjCArdCXt87AYd4dvaRbf_mPRBOLIo");
   supabase = Supabase.instance;
+  Fimber.i("Starting Neko Launcher Neo.");
   runApp(const MyApp());
 }
 
@@ -42,6 +52,7 @@ class MyApp extends StatelessWidget {
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
+    Fimber.i("Building the top level app widget.");
     return MaterialApp(
       title: 'Neko Launcher',
       theme: ThemeData(
@@ -115,6 +126,7 @@ class Home extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Fimber.i("Building the Home screen widget.");
     return Scaffold(
       floatingActionButtonLocation: FloatingActionButtonLocation.startFloat,
       floatingActionButton: FloatingActionButton.extended(
@@ -190,6 +202,7 @@ class Home extends StatelessWidget {
 class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
+    Fimber.i("Building the MainScreen (layout) widget.");
     return Scaffold(
       body: Row(
         children: [
@@ -259,6 +272,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    Fimber.i("Building the Settings screen widget.");
     return Scaffold(
         appBar: AppBar(
           title: const Text("Neko Launcher Settings"),

@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'dart:math' as maths;
+import 'package:fimber_io/fimber_io.dart';
 import 'package:flutter/material.dart';
 import "dart:convert";
 import "dart:io";
@@ -8,7 +9,14 @@ import "package:file_picker/file_picker.dart";
 import "package:charts_flutter/flutter.dart" as charts;
 
 import 'package:neko_launcher_neo/main.dart';
+import 'package:neko_launcher_neo/src/daemon.dart';
+import 'package:neko_launcher_neo/src/social.dart';
 import 'package:neko_launcher_neo/src/stylesheet.dart';
+
+class UpdateException implements Exception {
+  final Object rootCause;
+  UpdateException(this.rootCause);
+}
 
 class Game extends ChangeNotifier {
   late String path;
@@ -27,10 +35,12 @@ class Game extends ChangeNotifier {
   final datePattern = DateFormat("yyyy-MM-dd");
 
   Game(this.path) {
+    Fimber.i("Creating game object from JSON $path");
     update();
   }
 
   Game.fromExe(this.exec) {
+    Fimber.i("Creating game object from executable $exec");
     var file = File(exec);
     path = gamesFolder.path +
         "\\" +
@@ -75,21 +85,26 @@ class Game extends ChangeNotifier {
   }
 
   void update() {
-    var json = jsonDecode(File(path).readAsStringSync());
-    name = json["name"];
-    exec = json["exec"];
-    bg = json["bg"];
-    desc = json["desc"];
-    time = json["time"];
-    tags = json["tags"];
-    tags.sort();
-    activity = json["activity"];
-    emulate = json["emulate"] ?? false;
-    favourite = json["is_favourite"] ?? false;
-    nsfw = json["nsfw"] ?? false;
-    resolveImageProvider();
-    updateActivity();
-    notifyListeners();
+    try {
+      var json = jsonDecode(File(path).readAsStringSync());
+      name = json["name"] ?? "Untitled game";
+      exec = json["exec"];
+      bg = json["bg"] ?? "";
+      desc = json["desc"] ?? "";
+      time = json["time"] ?? 0;
+      tags = json["tags"] ?? [];
+      tags.sort();
+      activity = json["activity"] ?? {};
+      emulate = json["emulate"] ?? false;
+      favourite = json["is_favourite"] ?? false;
+      nsfw = json["nsfw"] ?? false;
+      resolveImageProvider();
+      updateActivity();
+      notifyListeners();
+    } catch (e) {
+      Fimber.e("Error while updating game object: $e");
+      throw UpdateException(e);
+    }
   }
 
   void save() {
@@ -110,20 +125,21 @@ class Game extends ChangeNotifier {
   }
 
   void folder() {
+    Fimber.i("(Game: $name) Opening folder.");
     if (exec.isEmpty) {
       return;
     }
-    stdout.writeln("Opened folder");
     Process.run("explorer", [File(exec).parent.path]);
   }
 
   void favouriteToggle() {
+    Fimber.i("(Game: $name) Toggling favourite.");
     favourite = !favourite;
     save();
-    stdout.writeln("Toggled favourite");
   }
 
   Future<void> delete(context) async {
+    Fimber.i("(Game: $name) Deletion pending...");
     return showDialog<void>(
       context: context,
       barrierDismissible: false, // user must tap button!
@@ -145,16 +161,20 @@ class Game extends ChangeNotifier {
             TextButton(
               child: const Text("Yes", style: Styles.bold),
               onPressed: () {
+                Fimber.i("(Game: $name) Deleting.");
                 File(path).deleteSync();
                 Navigator.of(context).pop();
                 navigatorKey.currentState!.pushReplacementNamed("/");
                 stdout.writeln("Deleted $name");
                 listKey.currentState!.loadGames();
+                Fimber.i(
+                    "(Game: $name) Deleted the game and reloaded the game list.");
               },
             ),
             TextButton(
               child: const Text("No", style: Styles.bold),
               onPressed: () {
+                Fimber.i("(Game: $name) Deletion cancelled.");
                 Navigator.of(context).pop();
               },
             ),
@@ -239,6 +259,7 @@ class _GameButtonState extends State<GameButton> {
 
   @override
   Widget build(BuildContext context) {
+    Fimber.i("(Game: ${widget.game.name}) Building GameButton widget.");
     return (launcherConfig.hideNsfw && widget.game.nsfw)
         ? const SizedBox.shrink()
         : AnimatedContainer(
@@ -347,6 +368,7 @@ class NekoActivityChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Fimber.i("Building NekoActivityChart widget.");
     final series = [
       charts.Series<ActivitySeries, DateTime>(
         id: 'Time',
@@ -433,6 +455,7 @@ class GameDetailsState extends State<GameDetails> {
   final _tagFocus = FocusNode();
 
   void addTag(String tag) {
+    Fimber.i("(Game: ${widget.game.name}) Adding tag: $tag");
     if (widget.game.tags.contains(tag) || tag.isEmpty) {
       return;
     }
@@ -443,36 +466,10 @@ class GameDetailsState extends State<GameDetails> {
   }
 
   void play() {
-    var exec = widget.game.exec;
-    List<String> args = [];
-    if (exec.isEmpty) {
-      return;
-    }
-    if (widget.game.emulate == true) {
-      exec = launcherConfig.lePath;
-      args.add(widget.game.exec);
-    }
-    stdout.writeln("Started playing");
-    var start = DateTime.now();
-    setState(() => canPlay = false);
-    Process.run(exec, args, runInShell: widget.game.emulate ? false : true)
-        .then((value) {
-      stdout.writeln("Finished playing");
-      var end = DateTime.now();
-      var diff = end.difference(start);
-      widget.game.time += diff.inSeconds;
-      var activityKey = widget.game.datePattern.format(start);
-      stdout.writeln("Activity key: $activityKey");
-      if (widget.game.activity.containsKey(activityKey)) {
-        widget.game.activity[activityKey] += diff.inSeconds;
-      } else {
-        widget.game.activity[activityKey] = diff.inSeconds;
-      }
-      setState(() {
-        canPlay = true;
-        widget.game.save();
-      });
+    setState(() {
+      canPlay = false;
     });
+    gameDaemon.play(widget.game);
   }
 
   void refreshState() {
@@ -482,6 +479,7 @@ class GameDetailsState extends State<GameDetails> {
   @override
   void initState() {
     super.initState();
+    gameDaemon.addListener(refreshState);
     widget.game.addListener(refreshState);
   }
 
@@ -490,11 +488,14 @@ class GameDetailsState extends State<GameDetails> {
     _tagController.dispose();
     _tagFocus.dispose();
     widget.game.removeListener(refreshState);
+    gameDaemon.removeListener(refreshState);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    canPlay = GameDaemon.activeGame == null;
+    Fimber.i("(Game: ${widget.game.name}) Building GameDetails widget.");
     var time = widget.game.prettyTime();
     var activityData = <ActivitySeries>[];
     widget.game.activity.forEach((key, value) {
@@ -744,6 +745,7 @@ class GameConfigState extends State<GameConfig> {
 
   @override
   Widget build(BuildContext context) {
+    Fimber.i("(Game: ${widget.game.name}) Building GameConfig widget.");
     return Scaffold(
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.primary,
@@ -959,6 +961,7 @@ class GameListState extends State<GameList> {
   final _sortingKey = GlobalKey<PopupMenuButtonState>();
 
   void sort() {
+    Fimber.i("Sorting game list: $sorting.");
     switch (sorting) {
       case Sorting.nameAsc:
         games.sort((a, b) => a.name.compareTo(b.name));
@@ -987,11 +990,16 @@ class GameListState extends State<GameList> {
   }
 
   void loadGames() {
+    Fimber.i("Loading games.");
     setState(() {
       games = [];
       gamesFolder.listSync().forEach((f) {
         if (f is File) {
-          games.add(Game(f.path));
+          try {
+            games.add(Game(f.path));
+          } on UpdateException catch (e) {
+            Fimber.e("Failed to load ${f.path}: ${e.rootCause}");
+          }
         }
       });
     });
@@ -999,6 +1007,7 @@ class GameListState extends State<GameList> {
 
   @override
   Widget build(BuildContext context) {
+    Fimber.i("Building GameList widget.");
     sort();
     return Column(
       children: [

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:fimber_io/fimber_io.dart';
 import 'package:flutter/material.dart';
 
 const defaultConfig = {
@@ -16,7 +17,9 @@ class LauncherConfig extends ChangeNotifier {
   late bool hideNsfw;
 
   LauncherConfig(this.configFile) {
+    Fimber.i("Loading launcher config from ${configFile.absolute}.");
     if (!configFile.existsSync()) {
+      Fimber.i("Launcher config file not found, creating a new one.");
       configFile.createSync();
       configFile.writeAsStringSync(jsonEncode(defaultConfig));
     }
@@ -33,6 +36,7 @@ class LauncherConfig extends ChangeNotifier {
       "blurNsfw": blurNsfw,
       "hideNsfw": hideNsfw,
     };
+    Fimber.i("Saving launcher config changes to file.");
     configFile.writeAsStringSync(jsonEncode(config));
     notifyListeners();
   }
