@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:file_picker/file_picker.dart';
 import 'package:fimber_io/fimber_io.dart';
 import 'package:flutter/material.dart';
 import 'package:neko_launcher_neo/main.dart';
@@ -14,6 +15,7 @@ class NekoUser extends ChangeNotifier {
   ActivityType activityType;
   String? activity;
   DateTime? lastActivity;
+  String avatar;
   late final RealtimeSubscription subscription;
 
   NekoUser(
@@ -21,7 +23,9 @@ class NekoUser extends ChangeNotifier {
       required this.name,
       required this.activityType,
       required this.activity,
-      required this.lastActivity}) {
+      required this.lastActivity,
+      this.avatar =
+          "https://byxhhsabmioakiwfrcud.supabase.in/storage/v1/object/public/avatars/neko64.png"}) {
     Fimber.i("Creating $name's profile. (UID: $uid)");
     subscription = supabase.client
         .from("profiles:id=eq.$uid")
@@ -35,6 +39,7 @@ class NekoUser extends ChangeNotifier {
       lastActivity = data.newRecord!["activity_timestamp"] != null
           ? DateTime.parse(data.newRecord!["activity_timestamp"])
           : null;
+      avatar = data.newRecord!["avatar_url"];
       notifyListeners();
     }).subscribe();
   }
@@ -48,6 +53,7 @@ class NekoUser extends ChangeNotifier {
       lastActivity: row["activity_timestamp"] != null
           ? DateTime.parse(row["activity_timestamp"])
           : null,
+      avatar: row["avatar_url"],
     );
   }
 
@@ -152,6 +158,7 @@ class _SocialState extends State<Social> {
                   icon: const Icon(Icons.exit_to_app),
                   onPressed: () {
                     supabase.client.auth.signOut();
+                    userProfile = null;
                     Navigator.pushReplacementNamed(
                       context,
                       "/",
@@ -169,64 +176,73 @@ class _SocialState extends State<Social> {
                       Expanded(
                         child: Column(
                           children: [
-                            // CircleAvatar(
-                            //   radius: 64,
-                            //   backgroundColor: Colors.transparent,
-                            //   backgroundImage:
-                            //       NetworkImage(userProfile!.avatar),
-                            //   child: IconButton(
-                            //     splashRadius: 64,
-                            //     color: Colors.transparent,
-                            //     tooltip: "Change avatar",
-                            //     constraints: BoxConstraints(
-                            //         minHeight: 128, minWidth: 128),
-                            //     icon: Icon(Icons.camera_alt),
-                            //     onPressed: () {
-                            //       {
-                            //         FilePicker.platform
-                            //             .pickFiles(
-                            //           type: FileType.image,
-                            //         )
-                            //             .then((result) {
-                            //           if (result != null) {
-                            //             supabase.client.storage
-                            //                 .from("avatars")
-                            //                 .upload(
-                            //                   "${userProfile!.uid}-${result.files.single.name}",
-                            //                   File(result.files.single.path!),
-                            //                 )
-                            //                 .then((response) {
-                            //               supabase.client
-                            //                   .from("profiles")
-                            //                   .update({
-                            //                     "avatar_url": response.data,
-                            //                   })
-                            //                   .eq("id", userProfile!.uid)
-                            //                   .execute();
-                            //             });
-                            //           }
-                            //         });
-                            //       }
-                            //     },
-                            //   ),
-                            // ),
+                            CircleAvatar(
+                              radius: 64,
+                              backgroundColor: Colors.transparent,
+                              backgroundImage:
+                                  NetworkImage(userProfile!.avatar),
+                              child: IconButton(
+                                splashRadius: 64,
+                                color: Colors.transparent,
+                                tooltip: "Change avatar",
+                                constraints: BoxConstraints(
+                                    minHeight: 128, minWidth: 128),
+                                icon: Icon(Icons.camera_alt),
+                                onPressed: () {
+                                  {
+                                    FilePicker.platform
+                                        .pickFiles(
+                                      type: FileType.image,
+                                    )
+                                        .then((result) {
+                                      //* The image must be under 2MB in size
+                                      if (result != null &&
+                                          result.files.single.size < 2000000) {
+                                        supabase.client.storage
+                                            .from("avatars")
+                                            .upload(
+                                              "${userProfile!.uid}-${result.files.single.name}",
+                                              File(result.files.single.path!),
+                                            )
+                                            .then((response) {
+                                          supabase.client
+                                              .from("profiles")
+                                              .update({
+                                                "avatar_url":
+                                                    "https://byxhhsabmioakiwfrcud.supabase.in/storage/v1/object/public/${response.data}",
+                                              })
+                                              .eq("id", userProfile!.uid)
+                                              .execute();
+                                        });
+                                      } else {
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: const Text("Error"),
+                                            content: const Text(
+                                                "The image must be under 2MB in size."),
+                                            actions: [
+                                              TextButton(
+                                                child: const Text("OK"),
+                                                onPressed: () {
+                                                  Navigator.of(context).pop();
+                                                },
+                                              )
+                                            ],
+                                          ),
+                                        );
+                                      }
+                                    });
+                                  }
+                                },
+                              ),
+                            ),
                             Text(
                               userProfile!.name,
                               style: TextStyle(fontSize: 24),
                             ),
                             userProfile?.activityText() ??
                                 const SizedBox.shrink(),
-                            TextButton(
-                                onPressed: () {
-                                  supabase.client
-                                      .from("profiles")
-                                      .update({
-                                        "username": "maak4422",
-                                      })
-                                      .eq("id", userProfile!.uid)
-                                      .execute();
-                                },
-                                child: Text("Change username"))
                           ],
                         ),
                       ),
@@ -303,7 +319,7 @@ class _SignInState extends State<SignIn> {
                         padding: const EdgeInsets.all(8.0),
                         child: ElevatedButton(
                             child: const Text("Sign in"),
-                            onPressed: () {
+                            onPressed: () async {
                               if (_signinKey.currentState!.validate()) {
                                 supabase.client.auth
                                     .signIn(
@@ -314,7 +330,19 @@ class _SignInState extends State<SignIn> {
                                     .then((response) {
                                   if (supabase.client.auth.currentSession !=
                                       null) {
-                                    Navigator.of(context).pop();
+                                    supabase.client
+                                        .from("profiles")
+                                        .select()
+                                        .eq(
+                                            "id",
+                                            supabase
+                                                .client.auth.currentUser!.id)
+                                        .execute()
+                                        .then((response) {
+                                      userProfile =
+                                          NekoUser.fromRow(response.data[0]);
+                                      Navigator.of(context).pop();
+                                    });
                                   }
                                 });
                               }

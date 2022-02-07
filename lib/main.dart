@@ -43,6 +43,19 @@ void main() async {
           "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNjQyMjA1NDE5LCJleHAiOjE5NTc3ODE0MTl9.DLp4O4UnN0-2JkjCArdCXt87AYd4dvaRbf_mPRBOLIo");
   supabase = Supabase.instance;
   Fimber.i("Starting Neko Launcher Neo.");
+  if (supabase.client.auth.currentSession != null) {
+    Fimber.i("User is logged in.");
+    supabase.client
+        .from("profiles")
+        .select()
+        .eq("id", supabase.client.auth.currentUser!.id)
+        .execute()
+        .then((response) {
+      userProfile = NekoUser.fromRow(response.data[0]);
+    });
+  } else {
+    Fimber.i("User is not logged in.");
+  }
   runApp(const MyApp());
 }
 
