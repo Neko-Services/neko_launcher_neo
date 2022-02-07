@@ -10,7 +10,6 @@ import "package:charts_flutter/flutter.dart" as charts;
 
 import 'package:neko_launcher_neo/main.dart';
 import 'package:neko_launcher_neo/src/daemon.dart';
-import 'package:neko_launcher_neo/src/social.dart';
 import 'package:neko_launcher_neo/src/stylesheet.dart';
 
 class UpdateException implements Exception {
@@ -431,7 +430,7 @@ class NekoActivityChart extends StatelessWidget {
         charts.SeriesLegend(
           position: charts.BehaviorPosition.end,
           horizontalFirst: false,
-          cellPadding: EdgeInsets.only(right: 4.0, bottom: 4.0),
+          cellPadding: const EdgeInsets.only(right: 4.0, bottom: 4.0),
           showMeasures: true,
           measureFormatter: timeFormatter,
         ),

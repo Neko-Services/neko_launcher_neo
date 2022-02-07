@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
@@ -64,7 +65,7 @@ class NekoUser extends ChangeNotifier {
         .update({
           "activity_type": type.index,
           "activity_details": details,
-          "activity_timestamp": DateTime.now().toIso8601String()
+          "activity_timestamp": DateTime.now().toUtc().toIso8601String()
         })
         .execute()
         .then((_) {
@@ -73,6 +74,8 @@ class NekoUser extends ChangeNotifier {
   }
 
   Widget activityText() {
+    Duration duration =
+        lastActivity?.difference(DateTime.now()).abs() ?? const Duration();
     switch (activityType) {
       case ActivityType.offline:
         return const Text.rich(
@@ -88,7 +91,12 @@ class NekoUser extends ChangeNotifier {
         return Text.rich(
           TextSpan(children: [
             const TextSpan(text: "Playing "),
-            TextSpan(text: activity, style: Styles.bold)
+            TextSpan(text: activity, style: Styles.bold),
+            const TextSpan(text: " for "),
+            TextSpan(
+                text:
+                    "${duration.inHours.toString().padLeft(2, '0')}:${duration.inMinutes.remainder(60).toString().padLeft(2, '0')}:${duration.inSeconds.remainder(60).toString().padLeft(2, '0')}",
+                style: Styles.bold),
           ]),
           style: const TextStyle(color: Colors.green),
         );
@@ -105,6 +113,7 @@ class Social extends StatefulWidget {
 
 class _SocialState extends State<Social> {
   bool _isLoading = true;
+  late Timer _timer;
 
   void refreshState() {
     setState(() {});
@@ -137,11 +146,14 @@ class _SocialState extends State<Social> {
       _isLoading = false;
       userProfile!.addListener(refreshState);
     }
+    _timer =
+        Timer.periodic(const Duration(seconds: 1), (timer) => refreshState());
   }
 
   @override
   void dispose() {
-    userProfile!.removeListener(refreshState);
+    userProfile?.removeListener(refreshState);
+    _timer.cancel();
     super.dispose();
   }
 
@@ -158,6 +170,7 @@ class _SocialState extends State<Social> {
                   icon: const Icon(Icons.exit_to_app),
                   onPressed: () {
                     supabase.client.auth.signOut();
+                    userProfile!.removeListener(refreshState);
                     userProfile = null;
                     Navigator.pushReplacementNamed(
                       context,
@@ -185,9 +198,9 @@ class _SocialState extends State<Social> {
                                 splashRadius: 64,
                                 color: Colors.transparent,
                                 tooltip: "Change avatar",
-                                constraints: BoxConstraints(
+                                constraints: const BoxConstraints(
                                     minHeight: 128, minWidth: 128),
-                                icon: Icon(Icons.camera_alt),
+                                icon: const Icon(Icons.camera_alt),
                                 onPressed: () {
                                   {
                                     FilePicker.platform
@@ -239,7 +252,7 @@ class _SocialState extends State<Social> {
                             ),
                             Text(
                               userProfile!.name,
-                              style: TextStyle(fontSize: 24),
+                              style: const TextStyle(fontSize: 24),
                             ),
                             userProfile?.activityText() ??
                                 const SizedBox.shrink(),
@@ -289,66 +302,68 @@ class _SignInState extends State<SignIn> {
                 padding: const EdgeInsets.all(8.0),
                 child: Form(
                   key: _signinKey,
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(
-                          "Sign in",
-                          style: Theme.of(context).textTheme.titleLarge,
+                  child: FocusTraversalGroup(
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(
+                            "Sign in",
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: TextFormField(
-                          key: _signinEmailKey,
-                          decoration:
-                              const InputDecoration(labelText: "E-mail"),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: TextFormField(
+                            key: _signinEmailKey,
+                            decoration:
+                                const InputDecoration(labelText: "E-mail"),
+                          ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: TextFormField(
-                          key: _signinPasswordKey,
-                          decoration:
-                              const InputDecoration(labelText: "Password"),
-                          obscureText: true,
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: TextFormField(
+                            key: _signinPasswordKey,
+                            decoration:
+                                const InputDecoration(labelText: "Password"),
+                            obscureText: true,
+                          ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: ElevatedButton(
-                            child: const Text("Sign in"),
-                            onPressed: () async {
-                              if (_signinKey.currentState!.validate()) {
-                                supabase.client.auth
-                                    .signIn(
-                                        email:
-                                            _signinEmailKey.currentState!.value,
-                                        password: _signinPasswordKey
-                                            .currentState!.value)
-                                    .then((response) {
-                                  if (supabase.client.auth.currentSession !=
-                                      null) {
-                                    supabase.client
-                                        .from("profiles")
-                                        .select()
-                                        .eq(
-                                            "id",
-                                            supabase
-                                                .client.auth.currentUser!.id)
-                                        .execute()
-                                        .then((response) {
-                                      userProfile =
-                                          NekoUser.fromRow(response.data[0]);
-                                      Navigator.of(context).pop();
-                                    });
-                                  }
-                                });
-                              }
-                            }),
-                      )
-                    ],
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: ElevatedButton(
+                              child: const Text("Sign in"),
+                              onPressed: () async {
+                                if (_signinKey.currentState!.validate()) {
+                                  supabase.client.auth
+                                      .signIn(
+                                          email: _signinEmailKey
+                                              .currentState!.value,
+                                          password: _signinPasswordKey
+                                              .currentState!.value)
+                                      .then((response) {
+                                    if (supabase.client.auth.currentSession !=
+                                        null) {
+                                      supabase.client
+                                          .from("profiles")
+                                          .select()
+                                          .eq(
+                                              "id",
+                                              supabase
+                                                  .client.auth.currentUser!.id)
+                                          .execute()
+                                          .then((response) {
+                                        userProfile =
+                                            NekoUser.fromRow(response.data[0]);
+                                        Navigator.of(context).pop();
+                                      });
+                                    }
+                                  });
+                                }
+                              }),
+                        )
+                      ],
+                    ),
                   ),
                 ),
               )),
@@ -358,143 +373,150 @@ class _SignInState extends State<SignIn> {
                 padding: const EdgeInsets.all(8.0),
                 child: Form(
                   key: _signupKey,
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(
-                          "Create new account",
-                          style: Theme.of(context).textTheme.titleLarge,
+                  child: FocusTraversalGroup(
+                    child: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(
+                            "Create new account",
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: TextFormField(
-                          key: _signupUsernameKey,
-                          decoration:
-                              const InputDecoration(labelText: "Username"),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return "Please enter your username";
-                            }
-                            if (value.length < 3) {
-                              return "Username must be at least 3 characters";
-                            }
-                            supabase.client
-                                .from("profiles")
-                                .select()
-                                .eq("username", value)
-                                .execute()
-                                .then((response) {
-                              if (response.data.length > 0) {
-                                return "Username already taken";
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: TextFormField(
+                            key: _signupUsernameKey,
+                            decoration:
+                                const InputDecoration(labelText: "Username"),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return "Please enter your username";
                               }
-                            });
-                            return null;
-                          },
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: TextFormField(
-                          key: _signupEmailKey,
-                          decoration:
-                              const InputDecoration(labelText: "E-mail"),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return "Please enter your e-mail";
-                            }
-                            if (!RegExp(
-                                    r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
-                                .hasMatch(value)) {
-                              return "Please enter a valid e-mail";
-                            }
-                            return null;
-                          },
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: TextFormField(
-                          key: _signupPasswordKey,
-                          decoration:
-                              const InputDecoration(labelText: "Password"),
-                          obscureText: true,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return "Please enter your password";
-                            }
-                            if (value.length < 8) {
-                              return "Password must be at least 8 characters";
-                            }
-                            if (!value.contains(RegExp(r"[0-9]"))) {
-                              return "Password must contain at least one number";
-                            }
-                            return null;
-                          },
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: TextFormField(
-                          key: _signupConfirmKey,
-                          decoration: const InputDecoration(
-                              labelText: "Confirm password"),
-                          obscureText: true,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return "Please confirm your password";
-                            }
-                            if (value !=
-                                _signupPasswordKey.currentState!.value) {
-                              return "Passwords do not match";
-                            }
-                            return null;
-                          },
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                        ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: ElevatedButton(
-                            child: const Text("Sign up"),
-                            onPressed: () {
-                              if (_signinKey.currentState!.validate()) {
-                                supabase.client.auth
-                                    .signUp(_signupEmailKey.currentState!.value,
-                                        _signupPasswordKey.currentState!.value)
-                                    .then((value) {
-                                  if (supabase.client.auth.currentSession !=
-                                      null) {
-                                    supabase.client
-                                        .from("profiles")
-                                        .insert({
-                                          "id": supabase
-                                              .client.auth.currentUser!.id,
-                                          "username": _signupUsernameKey
-                                              .currentState!.value
-                                        })
-                                        .execute()
-                                        .then((response) {
-                                          if (response.hasError) {
-                                            stdout.writeln(
-                                                response.error?.message);
-                                          } else {
-                                            userProfile =
-                                                NekoUser.fromRow(response.data);
-                                            Navigator.of(context).pop();
-                                          }
-                                        }, onError: (error) {
-                                          stdout.writeln(error);
-                                        });
-                                  }
-                                });
+                              if (value.length < 3) {
+                                return "Username must be at least 3 characters";
                               }
-                            }),
-                      )
-                    ],
+                              supabase.client
+                                  .from("profiles")
+                                  .select()
+                                  .eq("username", value)
+                                  .execute()
+                                  .then((response) {
+                                if (response.data.length > 0) {
+                                  return "Username already taken";
+                                }
+                              });
+                              return null;
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: TextFormField(
+                            key: _signupEmailKey,
+                            decoration:
+                                const InputDecoration(labelText: "E-mail"),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return "Please enter your e-mail";
+                              }
+                              if (!RegExp(
+                                      r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
+                                  .hasMatch(value)) {
+                                return "Please enter a valid e-mail";
+                              }
+                              return null;
+                            },
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: TextFormField(
+                            key: _signupPasswordKey,
+                            decoration:
+                                const InputDecoration(labelText: "Password"),
+                            obscureText: true,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return "Please enter your password";
+                              }
+                              if (value.length < 8) {
+                                return "Password must be at least 8 characters long";
+                              }
+                              if (!value.contains(RegExp(r"[0-9]"))) {
+                                return "Password must contain at least one number";
+                              }
+                              return null;
+                            },
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: TextFormField(
+                            key: _signupConfirmKey,
+                            decoration: const InputDecoration(
+                                labelText: "Confirm password"),
+                            obscureText: true,
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return "Please confirm your password";
+                              }
+                              if (value !=
+                                  _signupPasswordKey.currentState!.value) {
+                                return "Passwords do not match";
+                              }
+                              return null;
+                            },
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: ElevatedButton(
+                              child: const Text("Sign up"),
+                              onPressed: () {
+                                if (_signinKey.currentState!.validate()) {
+                                  supabase.client.auth
+                                      .signUp(
+                                          _signupEmailKey.currentState!.value,
+                                          _signupPasswordKey
+                                              .currentState!.value)
+                                      .then((value) {
+                                    if (supabase.client.auth.currentSession !=
+                                        null) {
+                                      supabase.client
+                                          .from("profiles")
+                                          .insert({
+                                            "id": supabase
+                                                .client.auth.currentUser!.id,
+                                            "username": _signupUsernameKey
+                                                .currentState!.value
+                                          })
+                                          .execute()
+                                          .then((response) {
+                                            if (response.hasError) {
+                                              Fimber.e(
+                                                  "Error while inserting ${supabase.client.auth.currentUser!.id}'s profile: ${response.error?.message}");
+                                            } else {
+                                              userProfile = NekoUser.fromRow(
+                                                  response.data);
+                                              Navigator.of(context).pop();
+                                            }
+                                          }, onError: (error) {
+                                            stdout.writeln(error);
+                                          });
+                                    }
+                                  });
+                                }
+                              }),
+                        )
+                      ],
+                    ),
                   ),
                 ),
               ))
