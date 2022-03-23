@@ -197,14 +197,67 @@ class Game extends ChangeNotifier {
           ? "${h.toStringAsPrecision(2)} hour"
           : "${h.toStringAsPrecision(2)} hours";
     } else if (d >= 1) {
-      text = d == 1
-          ? "${d.toStringAsPrecision(2)} day"
-          : "${d.toStringAsPrecision(2)} days";
+      text = d == 1 ? "$d day" : "${((d * 100) ~/ 10) / 10} days";
     }
 
-    var sentenceTime = d >= 1 ? "$h hours" : "$m minutes";
+    var sentenceTime =
+        d >= 1 ? "${((h * 100) ~/ 10) / 10} hours" : "$m minutes";
 
-    var anecdote = "You couldn't really have done anything in that time.";
+    var anecdote = "";
+
+    if (s < 600) {
+      anecdote = "You couldn't really have done anything in that time.";
+    } else if (s >= 600 && s < 1440) {
+      var times = s ~/ 600;
+      anecdote = times == 1
+          ? "In this time you could've watched an average YouTube video."
+          : "In this time you could've watched, like, $times average YouTube videos.";
+    } else if (s >= 1440 && s < 7200) {
+      var times = s ~/ 1440;
+      anecdote = times == 1
+          ? "In this time you could've watched one whole anime episode."
+          : "In this time you could've watched, like, $times anime episodes.";
+    } else if (s >= 7200 && s < 17280) {
+      var times1 = s ~/ 5400;
+      var times2 = s ~/ 7200;
+      anecdote = times2 == 1
+          ? "In this time you could've watched at least one whole movie."
+          : times1 == times2
+              ? "In this time you could've watched, like, $times1 movies."
+              : "In this time you could've watched, like, somewhere between $times2 and $times1 movies.";
+    } else if (s >= 17280 && s < 28800) {
+      anecdote =
+          "In that time you could've watched one whole one-cour anime series.";
+    } else if (s >= 28800 && s < 34560) {
+      anecdote = "In that time you could've gotten a healthy amount of sleep.";
+    } else if (s >= 34560 && s < 6912000) {
+      if (s >= 86400 && s < 100000) {
+        anecdote =
+            "They say Rome wasn't built in a day; have you at least finished playing this game in that amount of time?";
+      } else if (s >= 259200 && s < 275000) {
+        anecdote =
+            "Jesus managed to die and get reborn in 3 days. What did you accomplish in that time?";
+      } else if (s >= 396000 && s < 420000) {
+        anecdote =
+            "In that time you probably could've walked on foot from Kraków to Gdańsk, about 600km.";
+      } else if (s >= 527040 && s < 552240) {
+        anecdote = "In that time you could've watched Bleach in its entirety.";
+      } else if (s >= 552240 && s < 580000) {
+        anecdote =
+            "In that time you could've watched Bleach in its entirety, movies and specials included.";
+      } else {
+        var times1 = s ~/ 34560;
+        var times2 = s ~/ 17280;
+        anecdote = times2 == 2
+            ? "In that time you could've watched one whole two-cour anime series."
+            : times1 == 1
+                ? "In that time you could've watched one whole two-cour anime series or $times2 one-cour anime series."
+                : "In that time you could've watched $times1 two-cour anime series or $times2 one-cour anime series.";
+      }
+    } else {
+      anecdote =
+          "In that time you could've probably traveled around the world in a fucking hot air balloon, and God knows what else.";
+    }
 
     return {
       "text": text,
