@@ -159,12 +159,33 @@ class Home extends StatelessWidget {
           });
         },
       ),
-      body: Center(
+      body: NekoBackground(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Opacity(
-              opacity: 0.5,
+            const ColorFiltered(
+              colorFilter: ColorFilter.matrix(<double>[
+                0.8,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0.8,
+                0,
+                0,
+                0,
+                0,
+                0,
+                0.8,
+                0,
+                0,
+                0,
+                0,
+                0,
+                1,
+                0,
+              ]),
               child: Image(
                 image: AssetImage("assets/neko64.png"),
                 height: 64,
