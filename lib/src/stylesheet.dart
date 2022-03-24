@@ -223,3 +223,55 @@ class _NekoBackgroundState extends State<NekoBackground> {
     );
   }
 }
+
+class UpdateChecker extends StatefulWidget {
+  const UpdateChecker({Key? key}) : super(key: key);
+
+  @override
+  State<UpdateChecker> createState() => _UpdateCheckerState();
+}
+
+class _UpdateCheckerState extends State<UpdateChecker> {
+  String newestVersion = "";
+  String releaseLink = "";
+  bool updateAvailable = false;
+
+  @override
+  void initState() {
+    super.initState();
+    Fimber.i("Checking for updates...");
+    http
+        .get(Uri.parse(
+            "https://api.github.com/repos/Neko-Services/neko_launcher_neo/releases"))
+        .then((response) {
+      var json = jsonDecode(response.body);
+      Fimber.i("Received and decoded response from GitHub.");
+      setState(() {
+        newestVersion = json[0]["tag_name"];
+        releaseLink = json[0]["html_url"];
+        updateAvailable = newestVersion != launcherVersion;
+      });
+      Fimber.i("Successfully set newest version to $newestVersion.");
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextButton.icon(
+        icon: Icon(newestVersion == launcherVersion
+            ? Icons.check
+            : newestVersion == ""
+                ? Icons.help
+                : Icons.warning),
+        label: Text(newestVersion == launcherVersion
+            ? "Up to date"
+            : newestVersion == ""
+                ? "Update status unknown"
+                : "New version available!"),
+        onPressed: updateAvailable
+            ? () {
+                launch(releaseLink);
+              }
+            : null);
+  }
+}

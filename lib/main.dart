@@ -20,6 +20,9 @@ final gamesFolder =
 final launcherConfig = LauncherConfig(
     File(Platform.environment["APPDATA"]! + "\\neko-launcher\\config.json"));
 
+//! Update before publishing
+const launcherVersion = "v0.2.1-alpha";
+
 late final Supabase supabase;
 final GameDaemon gameDaemon = GameDaemon();
 NekoUser? userProfile;
@@ -226,6 +229,7 @@ class Home extends StatelessWidget {
                     icon: const Icon(Icons.person)),
               ],
             ),
+            const UpdateChecker(),
           ],
         ),
       ),
