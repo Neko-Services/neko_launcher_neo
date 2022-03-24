@@ -290,6 +290,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   final _formKey = GlobalKey<FormState>();
   final _leKey = GlobalKey<FormFieldState>();
+  final _gelKey = GlobalKey<FormFieldState>();
   bool _pendingChanges = false;
 
   void highlightSave() {
@@ -404,6 +405,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                           ],
                         );
+                      },
+                    ),
+                    TextFormField(
+                      key: _gelKey,
+                      decoration: InputDecoration(
+                          prefixIcon: IconButton(
+                              splashRadius: Styles.splash,
+                              tooltip: "Restore default",
+                              onPressed: () {
+                                _gelKey.currentState!.didChange(
+                                    launcherConfig.defaults["gelbooruTags"]);
+                              },
+                              icon: Icon(Icons.refresh)),
+                          suffixText: "-mp4 -webm sort:random",
+                          labelText: "Home screen background tags",
+                          hintText: "Gelbooru tags",
+                          helperText:
+                              "The home screen background finds images using Gelbooru. If you don't know what you're doing, leave as is or refer to their wiki (howto:search, howto:cheatsheet)."),
+                      initialValue: launcherConfig.gelbooruTags,
+                      onSaved: (value) {
+                        launcherConfig.gelbooruTags =
+                            value ?? launcherConfig.gelbooruTags;
                       },
                     ),
                   ],

@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:http/http.dart' as http;
 
+import 'package:neko_launcher_neo/main.dart';
+
 final Uint8List kTransparentImage = Uint8List.fromList(<int>[
   0x89,
   0x50,
@@ -161,7 +163,7 @@ class _NekoBackgroundState extends State<NekoBackground> {
     Fimber.i("Sending request to Gelbooru...");
     http
         .get(Uri.parse(
-            'https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&limit=1&tags=cat_ears+rating:safe+-webm+-mp4+-huge_filesize+width:>=1080+sort:random'))
+            'https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&limit=1&tags=${launcherConfig.gelbooruTags.trim().replaceAll(" ", "+")}+-webm+-mp4+sort:random'))
         .then((response) {
       var json = jsonDecode(response.body);
       Fimber.i("Received and decoded response from Gelbooru.");

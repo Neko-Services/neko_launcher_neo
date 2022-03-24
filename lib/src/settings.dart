@@ -8,6 +8,7 @@ const defaultConfig = {
   "lePath": "",
   "blurNsfw": false,
   "hideNsfw": false,
+  "gelbooruTags": "cat_ears rating:safe -huge_filesize width:>=1080"
 };
 
 class LauncherConfig extends ChangeNotifier {
@@ -15,6 +16,9 @@ class LauncherConfig extends ChangeNotifier {
   late String lePath;
   late bool blurNsfw;
   late bool hideNsfw;
+  late String gelbooruTags;
+
+  get defaults => defaultConfig;
 
   LauncherConfig(this.configFile) {
     Fimber.i("Loading launcher config from ${configFile.absolute}.");
@@ -28,6 +32,7 @@ class LauncherConfig extends ChangeNotifier {
     lePath = config["lePath"] ?? defaultConfig["lePath"];
     blurNsfw = config["blurNsfw"] ?? defaultConfig["blurNsfw"];
     hideNsfw = config["hideNsfw"] ?? defaultConfig["hideNsfw"];
+    gelbooruTags = config["gelbooruTags"] ?? defaultConfig["gelbooruTags"];
   }
 
   void save() {
@@ -35,6 +40,7 @@ class LauncherConfig extends ChangeNotifier {
       "lePath": lePath,
       "blurNsfw": blurNsfw,
       "hideNsfw": hideNsfw,
+      "gelbooruTags": gelbooruTags
     };
     Fimber.i("Saving launcher config changes to file.");
     configFile.writeAsStringSync(jsonEncode(config));
