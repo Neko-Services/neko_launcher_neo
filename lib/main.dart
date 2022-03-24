@@ -25,7 +25,7 @@ final GameDaemon gameDaemon = GameDaemon();
 NekoUser? userProfile;
 
 void main() async {
-  Fimber.plantTree(TimedRollingFileTree());
+  Fimber.plantTree(TimedRollingFileTree(filenamePrefix: "logs\\log_"));
   Fimber.i("Starting Neko Launcher...");
   Fimber.i("Ensuring game folder exists at ${gamesFolder.absolute}.");
   if (!gamesFolder.existsSync()) {
@@ -410,14 +410,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     TextFormField(
                       key: _gelKey,
                       decoration: InputDecoration(
-                          prefixIcon: IconButton(
-                              splashRadius: Styles.splash,
-                              tooltip: "Restore default",
-                              onPressed: () {
-                                _gelKey.currentState!.didChange(
-                                    launcherConfig.defaults["gelbooruTags"]);
-                              },
-                              icon: Icon(Icons.refresh)),
+                          prefixIcon: Padding(
+                            padding: const EdgeInsets.only(right: 8.0),
+                            child: IconButton(
+                                splashRadius: Styles.splash,
+                                tooltip: "Restore default",
+                                onPressed: () {
+                                  _gelKey.currentState!.didChange(
+                                      launcherConfig.defaults["gelbooruTags"]);
+                                },
+                                icon: const Icon(Icons.refresh)),
+                          ),
                           suffixText: "-mp4 -webm sort:random",
                           labelText: "Home screen background tags",
                           hintText: "Gelbooru tags",
