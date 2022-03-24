@@ -1,15 +1,15 @@
-import "dart:io";
-import "package:flutter/material.dart";
-import "package:file_picker/file_picker.dart";
-import 'package:neko_launcher_neo/src/daemon.dart';
-import "package:window_size/window_size.dart";
-import "package:supabase_flutter/supabase_flutter.dart";
-import "package:fimber_io/fimber_io.dart";
+import 'dart:io';
+import 'package:flutter/material.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:window_size/window_size.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:fimber_io/fimber_io.dart';
 
-import "src/games.dart";
-import "src/stylesheet.dart";
-import "src/settings.dart";
-import "src/social.dart";
+import 'package:neko_launcher_neo/src/games.dart';
+import 'package:neko_launcher_neo/src/stylesheet.dart';
+import 'package:neko_launcher_neo/src/settings.dart';
+import 'package:neko_launcher_neo/src/social.dart';
+import 'package:neko_launcher_neo/src/daemon.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 final listKey = GlobalKey<GameListState>();

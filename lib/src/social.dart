@@ -4,9 +4,10 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:fimber_io/fimber_io.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'package:neko_launcher_neo/main.dart';
 import 'package:neko_launcher_neo/src/stylesheet.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 enum ActivityType { offline, online, game }
 
@@ -43,6 +44,10 @@ class NekoUser extends ChangeNotifier {
       avatar = data.newRecord!["avatar_url"];
       notifyListeners();
     }).subscribe();
+    // subscription.onError((error) {
+    //   Fimber.e("(User: $uid) Profile subscription error: $error.");
+    //   subscription.rejoinUntilConnected();
+    // });
   }
 
   factory NekoUser.fromRow(Map<String, dynamic> row) {

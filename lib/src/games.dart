@@ -1,12 +1,14 @@
 import 'dart:ui';
 import 'dart:math' as maths;
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:fimber_io/fimber_io.dart';
 import 'package:flutter/material.dart';
-import "dart:convert";
-import "dart:io";
-import "package:intl/intl.dart";
-import "package:file_picker/file_picker.dart";
-import "package:charts_flutter/flutter.dart" as charts;
+import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:charts_flutter/flutter.dart' as charts;
+import 'package:flutter_improved_scrolling/flutter_improved_scrolling.dart';
 
 import 'package:neko_launcher_neo/main.dart';
 import 'package:neko_launcher_neo/src/daemon.dart';
@@ -1011,6 +1013,7 @@ class GameListState extends State<GameList> {
   List<Game> games = [];
   Sorting sorting = Sorting.nameAsc;
   final _sortingKey = GlobalKey<PopupMenuButtonState>();
+  final _controller = ScrollController();
 
   void sort() {
     Fimber.i("Sorting game list: $sorting.");
@@ -1034,11 +1037,6 @@ class GameListState extends State<GameList> {
   void initState() {
     super.initState();
     loadGames();
-  }
-
-  @override
-  void dispose() {
-    super.dispose();
   }
 
   void loadGames() {
@@ -1133,23 +1131,35 @@ class GameListState extends State<GameList> {
         ),
         games.isNotEmpty
             ? Expanded(
-                child: ListView.builder(
-                  itemCount: games.length,
-                  itemBuilder: (context, index) {
-                    return GameButton(
-                      game: games[index],
-                      onTap: () {
-                        games[index].update();
-                        if (navigatorKey.currentState!.canPop()) {
-                          navigatorKey.currentState!.pop();
-                        }
-                        navigatorKey.currentState!.pushReplacementNamed(
-                          "/game",
-                          arguments: games[index],
-                        );
-                      },
-                    );
-                  },
+                child: ImprovedScrolling(
+                  enableCustomMouseWheelScrolling: true,
+                  customMouseWheelScrollConfig:
+                      const CustomMouseWheelScrollConfig(
+                    scrollAmountMultiplier: 12.0,
+                    scrollDuration: Duration(milliseconds: 400),
+                    mouseWheelTurnsThrottleTimeMs: 1,
+                  ),
+                  scrollController: _controller,
+                  child: ListView.builder(
+                    physics: const NeverScrollableScrollPhysics(),
+                    controller: _controller,
+                    itemCount: games.length,
+                    itemBuilder: (context, index) {
+                      return GameButton(
+                        game: games[index],
+                        onTap: () {
+                          games[index].update();
+                          if (navigatorKey.currentState!.canPop()) {
+                            navigatorKey.currentState!.pop();
+                          }
+                          navigatorKey.currentState!.pushReplacementNamed(
+                            "/game",
+                            arguments: games[index],
+                          );
+                        },
+                      );
+                    },
+                  ),
                 ),
               )
             : Expanded(
