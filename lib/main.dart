@@ -156,7 +156,7 @@ class Home extends StatelessWidget {
         onPressed: () {
           FilePicker.platform.pickFiles(
             type: FileType.custom,
-            allowedExtensions: Platform.isLinux ? ["exe", ""] : ["exe"],
+            allowedExtensions: Platform.isLinux ? ["exe", "sh", ""] : ["exe"],
           ).then((result) {
             if (result != null) {
               Game.fromExe(
