@@ -549,6 +549,9 @@ class GameDetailsState extends State<GameDetails> {
   @override
   Widget build(BuildContext context) {
     canPlay = GameDaemon.activeGame == null;
+    if (Platform.isWindows && (widget.game.emulate && launcherConfig.lePath == "")) {
+      canPlay = false;
+    }
     Fimber.i("(Game: ${widget.game.name}) Building GameDetails widget.");
     var time = widget.game.prettyTime();
     var activityData = <ActivitySeries>[];
@@ -628,7 +631,8 @@ class GameDetailsState extends State<GameDetails> {
                     Row(
                       children: [
                         if (launcherConfig.lePath == "" &&
-                            widget.game.emulate == true)
+                            widget.game.emulate == true && 
+                            Platform.isWindows)
                           Padding(
                             padding:
                                 const EdgeInsets.symmetric(horizontal: 8.0),
@@ -661,9 +665,7 @@ class GameDetailsState extends State<GameDetails> {
                                       ),
                                     ]),
                             ),
-                            onPressed: canPlay &&
-                                    (launcherConfig.lePath != "" ||
-                                        widget.game.emulate == false)
+                            onPressed: canPlay 
                                 ? play
                                 : null),
                       ],
@@ -946,7 +948,8 @@ class GameConfigState extends State<GameConfig> {
                               autovalidateMode: AutovalidateMode.always,
                               validator: (value) {
                                 if (value == true &&
-                                    launcherConfig.lePath == "") {
+                                    launcherConfig.lePath == "" &&
+                                    Platform.isWindows) {
                                   return "Set LocaleEmulator path in the Launcher's settings!";
                                 }
                                 return null;

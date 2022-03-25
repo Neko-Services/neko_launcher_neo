@@ -156,7 +156,7 @@ class Home extends StatelessWidget {
         onPressed: () {
           FilePicker.platform.pickFiles(
             type: FileType.custom,
-            allowedExtensions: ["exe"],
+            allowedExtensions: Platform.isLinux ? ["exe", ""] : ["exe"],
           ).then((result) {
             if (result != null) {
               Game.fromExe(
@@ -359,7 +359,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 padding: const EdgeInsets.all(8.0),
                 child: ListView(
                   children: [
-                    TextFormField(
+                    Platform.isLinux
+                    ? const SizedBox.shrink()
+                    : TextFormField(
                       key: _leKey,
                       decoration: InputDecoration(
                           labelText: "LocaleEmulator executable path",

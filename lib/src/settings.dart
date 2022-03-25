@@ -24,7 +24,7 @@ class LauncherConfig extends ChangeNotifier {
     Fimber.i("Loading launcher config from ${configFile.absolute}.");
     if (!configFile.existsSync()) {
       Fimber.i("Launcher config file not found, creating a new one.");
-      configFile.createSync();
+      configFile.createSync(recursive: true);
       configFile.writeAsStringSync(jsonEncode(defaultConfig));
     }
     var content = configFile.readAsStringSync();
