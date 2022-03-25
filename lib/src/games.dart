@@ -44,19 +44,19 @@ class Game extends ChangeNotifier {
     Fimber.i("Creating game object from executable $exec");
     var file = File(exec);
     path = gamesFolder.path +
-        "\\" +
-        (file.path.split("\\").last).split(".").first +
+        Platform.pathSeparator +
+        (file.path.split(Platform.pathSeparator).last).split(".").first +
         ".json";
     if (File(path).existsSync()) {
       path = gamesFolder.path +
-          "\\" +
-          (file.path.split("\\").last).split(".").first +
+          Platform.pathSeparator +
+          (file.path.split(Platform.pathSeparator).last).split(".").first +
           DateTime.now().millisecondsSinceEpoch.toString() +
           ".json";
     }
     File(path).createSync();
     stdout.writeln(file.parent.path);
-    name = file.parent.path.split("\\").last;
+    name = file.parent.path.split(Platform.pathSeparator).last;
     save();
     resolveImageProvider();
     listKey.currentState!.loadGames();

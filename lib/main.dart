@@ -14,11 +14,14 @@ import 'package:neko_launcher_neo/src/daemon.dart';
 final navigatorKey = GlobalKey<NavigatorState>();
 final listKey = GlobalKey<GameListState>();
 
-final gamesFolder =
-    Directory(Platform.environment["APPDATA"]! + "\\neko-launcher\\games");
+final gamesFolder = Platform.isLinux
+    ? Directory(
+        Platform.environment["HOME"]! + "/.local/share/neko-launcher/games")
+    : Directory(Platform.environment["APPDATA"]! + "\\neko-launcher\\games");
 
-final launcherConfig = LauncherConfig(
-    File(Platform.environment["APPDATA"]! + "\\neko-launcher\\config.json"));
+final launcherConfig = LauncherConfig(Platform.isLinux
+    ? File(Platform.environment["HOME"]! + "/.config/neko-launcher.json")
+    : File(Platform.environment["APPDATA"]! + "\\neko-launcher\\config.json"));
 
 //! Update before publishing
 const launcherVersion = "v0.2.1-alpha";
@@ -28,7 +31,8 @@ final GameDaemon gameDaemon = GameDaemon();
 NekoUser? userProfile;
 
 void main() async {
-  Fimber.plantTree(TimedRollingFileTree(filenamePrefix: "logs\\log_"));
+  Fimber.plantTree(TimedRollingFileTree(
+      filenamePrefix: "logs" + Platform.pathSeparator + "log_"));
   Fimber.i("Starting Neko Launcher...");
   Fimber.i("Ensuring game folder exists at ${gamesFolder.absolute}.");
   if (!gamesFolder.existsSync()) {

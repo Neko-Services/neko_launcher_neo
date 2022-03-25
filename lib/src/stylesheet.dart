@@ -170,14 +170,15 @@ class _NekoBackgroundState extends State<NekoBackground> {
       var post = json["post"][0];
       var img = post["file_url"];
       var id = post["id"];
-      var ratio = post["height"] / post["width"];
+      // var ratio = post["height"] / post["width"];
       setState(() {
         link = "https://gelbooru.com/index.php?page=post&s=view&id=$id";
         background = FadeInImage.memoryNetwork(
           placeholder: kTransparentImage,
           image: img,
           fit: BoxFit.cover,
-          alignment: ratio >= 1.2 ? Alignment.topCenter : Alignment.center,
+          // alignment: ratio >= 1.2 ? Alignment.topCenter : Alignment.center,
+          alignment: Alignment.center,
         );
       });
       Fimber.i("Successfully set background to $img.");

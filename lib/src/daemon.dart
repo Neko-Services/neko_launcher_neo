@@ -10,6 +10,7 @@ import 'package:neko_launcher_neo/src/social.dart';
 class GameDaemon extends ChangeNotifier {
   static Game? activeGame;
 
+  //TODO: Linuxify this
   void play(Game game) async {
     activeGame = game;
 
