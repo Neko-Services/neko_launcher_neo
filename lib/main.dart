@@ -154,10 +154,12 @@ class Home extends StatelessWidget {
         label: const Text("Add game"),
         icon: const Icon(Icons.add),
         onPressed: () {
-          FilePicker.platform.pickFiles(
+          FilePicker.platform
+              .pickFiles(
             type: FileType.custom,
             allowedExtensions: Platform.isLinux ? ["exe", "sh", ""] : ["exe"],
-          ).then((result) {
+          )
+              .then((result) {
             if (result != null) {
               Game.fromExe(
                 result.files.single.path!,
@@ -360,31 +362,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 child: ListView(
                   children: [
                     Platform.isLinux
-                    ? const SizedBox.shrink()
-                    : TextFormField(
-                      key: _leKey,
-                      decoration: InputDecoration(
-                          labelText: "LocaleEmulator executable path",
-                          hintText: "Path",
-                          suffixIcon: NekoPathSuffix(
-                            fieldKey: _leKey,
-                            type: FileType.custom,
-                            extensions: const ["exe"],
-                          )),
-                      initialValue: launcherConfig.lePath,
-                      autovalidateMode: AutovalidateMode.onUserInteraction,
-                      validator: (value) {
-                        if (value != null &&
-                            value != "" &&
-                            !value.endsWith("LEProc.exe")) {
-                          return "Path must point to LEProc.exe, LocaleEmulator's main executable.";
-                        }
-                        return null;
-                      },
-                      onSaved: (value) {
-                        launcherConfig.lePath = value ?? launcherConfig.lePath;
-                      },
-                    ),
+                        ? const SizedBox.shrink()
+                        : TextFormField(
+                            key: _leKey,
+                            decoration: InputDecoration(
+                                labelText: "LocaleEmulator executable path",
+                                hintText: "Path",
+                                suffixIcon: NekoPathSuffix(
+                                  fieldKey: _leKey,
+                                  type: FileType.custom,
+                                  extensions: const ["exe"],
+                                )),
+                            initialValue: launcherConfig.lePath,
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            validator: (value) {
+                              if (value != null &&
+                                  value != "" &&
+                                  !value.endsWith("LEProc.exe")) {
+                                return "Path must point to LEProc.exe, LocaleEmulator's main executable.";
+                              }
+                              return null;
+                            },
+                            onSaved: (value) {
+                              launcherConfig.lePath =
+                                  value ?? launcherConfig.lePath;
+                            },
+                          ),
                     FormField(
                       initialValue: launcherConfig.blurNsfw,
                       onSaved: (bool? newValue) => launcherConfig.blurNsfw =

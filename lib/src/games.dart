@@ -505,6 +505,8 @@ class GameDetails extends StatefulWidget {
 
 class GameDetailsState extends State<GameDetails> {
   bool canPlay = true;
+  bool missingWine = false;
+  bool missingLE = false;
   final _tagController = TextEditingController();
   final _tagFocus = FocusNode();
 
@@ -535,6 +537,21 @@ class GameDetailsState extends State<GameDetails> {
     super.initState();
     gameDaemon.addListener(refreshState);
     widget.game.addListener(refreshState);
+    if (Platform.isLinux && widget.game.exec.endsWith(".exe")) {
+      Process.run("which", ["wine"]).then((result) {
+        if (result.exitCode != 0) {
+          setState(() {
+            missingWine = true;
+          });
+        }
+      });
+    }
+    if (Platform.isWindows &&
+        (widget.game.emulate && launcherConfig.lePath == "")) {
+      setState(() {
+        missingLE = true;
+      });
+    }
   }
 
   @override
@@ -549,7 +566,7 @@ class GameDetailsState extends State<GameDetails> {
   @override
   Widget build(BuildContext context) {
     canPlay = GameDaemon.activeGame == null;
-    if (Platform.isWindows && (widget.game.emulate && launcherConfig.lePath == "")) {
+    if (missingWine || missingLE) {
       canPlay = false;
     }
     Fimber.i("(Game: ${widget.game.name}) Building GameDetails widget.");
@@ -630,9 +647,7 @@ class GameDetailsState extends State<GameDetails> {
                   children: [
                     Row(
                       children: [
-                        if (launcherConfig.lePath == "" &&
-                            widget.game.emulate == true && 
-                            Platform.isWindows)
+                        if (missingLE || missingWine)
                           Padding(
                             padding:
                                 const EdgeInsets.symmetric(horizontal: 8.0),
@@ -641,8 +656,11 @@ class GameDetailsState extends State<GameDetails> {
                                 Icons.error,
                                 color: Theme.of(context).errorColor,
                               ),
-                              message:
-                                  "Set LocaleEmulator path in the Launcher's settings to play.",
+                              message: missingWine
+                                  ? "Install and configure Wine to play Windows games."
+                                  : missingLE
+                                      ? "Set LocaleEmulator path in the Launcher's settings to play."
+                                      : "Unknown error",
                             ),
                           ),
                         ElevatedButton(
@@ -665,9 +683,7 @@ class GameDetailsState extends State<GameDetails> {
                                       ),
                                     ]),
                             ),
-                            onPressed: canPlay 
-                                ? play
-                                : null),
+                            onPressed: canPlay ? play : null),
                       ],
                     ),
                     OutlinedButton(
