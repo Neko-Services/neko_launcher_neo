@@ -160,6 +160,10 @@ class _NekoBackgroundState extends State<NekoBackground> {
   @override
   void initState() {
     super.initState();
+    changeBackground();
+  }
+
+  void changeBackground() {
     Fimber.i("Sending request to Gelbooru...");
     http
         .get(Uri.parse(
@@ -206,6 +210,11 @@ class _NekoBackgroundState extends State<NekoBackground> {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
+                IconButton(
+                    tooltip: "Change background",
+                    splashRadius: Styles.splash,
+                    onPressed: changeBackground,
+                    icon: const Icon(Icons.refresh)),
                 IconButton(
                     tooltip: "Open background on Gelbooru",
                     splashRadius: Styles.splash,
