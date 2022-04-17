@@ -24,11 +24,12 @@ final launcherConfig = LauncherConfig(Platform.isLinux
     : File(Platform.environment["APPDATA"]! + "\\neko-launcher\\config.json"));
 
 //! Update before publishing
-const launcherVersion = "v0.2.1-alpha";
+const launcherVersion = "v0.2.2-alpha";
 
 late final Supabase supabase;
 final GameDaemon gameDaemon = GameDaemon();
 NekoUser? userProfile;
+final logFolder = Directory("./logs");
 
 void main() async {
   Fimber.plantTree(TimedRollingFileTree(
@@ -127,6 +128,7 @@ class MyApp extends StatelessWidget {
       routes: <String, WidgetBuilder>{
         "/settings": (BuildContext context) => const SettingsScreen(),
         "/login": (BuildContext context) => const SignIn(),
+        "/error": (BuildContext context) => const ErrorScreen(),
       },
     );
   }
@@ -277,6 +279,9 @@ class _MainScreenState extends State<MainScreen> {
                 case "/social":
                   builder = (BuildContext context) => const Social();
                   break;
+                case "/error":
+                  builder = (BuildContext context) => const ErrorScreen();
+                  break;
                 default:
                   throw Exception('Invalid route: ${settings.name}');
               }
@@ -301,6 +306,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _formKey = GlobalKey<FormState>();
   final _leKey = GlobalKey<FormFieldState>();
   final _gelKey = GlobalKey<FormFieldState>();
+  String _logsInfo = "Calculating...";
   bool _pendingChanges = false;
 
   void highlightSave() {
@@ -315,13 +321,54 @@ class _SettingsScreenState extends State<SettingsScreen> {
     });
   }
 
+  void updateLogsSize() async {
+    int fileNum = 0;
+    int totalSize = 0;
+
+    if (logFolder.existsSync()) {
+      final files = logFolder.listSync(recursive: true);
+      fileNum = files.length;
+      for (final file in files) {
+        if (file is File) {
+          totalSize += file.lengthSync();
+        }
+      }
+      setState(() {
+        _logsInfo = "$fileNum files, ${totalSize ~/ 1024} KB";
+      });
+    } else {
+      setState(() {
+        _logsInfo = "Logs folder not found";
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    updateLogsSize();
     Fimber.i("Building the Settings screen widget.");
     return Scaffold(
         appBar: AppBar(
           title: const Text("Neko Launcher Settings"),
           actions: [
+            // Padding(
+            //   padding: const EdgeInsets.all(8.0),
+            //   child: IconButton(
+            //     tooltip: "Sync from cloud",
+            //     splashRadius: Styles.splash,
+            //     icon: const Icon(Icons.cloud_download),
+            //     onPressed: () => {},
+            //   ),
+            // ),
+            // Padding(
+            //   padding: const EdgeInsets.all(8.0),
+            //   child: IconButton(
+            //     tooltip: "Save to cloud",
+            //     splashRadius: Styles.splash,
+            //     icon: const Icon(Icons.cloud_upload),
+            //     onPressed: () => {},
+            //   ),
+            // ),
             Padding(
               padding: const EdgeInsets.all(8.0),
               child: IconButton(
@@ -329,9 +376,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 splashRadius: Styles.splash,
                 icon: const Icon(Icons.edit),
                 onPressed: () => {
-                  Process.run(
-                      "start", ['"edit"', launcherConfig.configFile.path],
-                      runInShell: true)
+                  if (Platform.isWindows)
+                    {
+                      Process.run(
+                          "start", ['"edit"', launcherConfig.configFile.path],
+                          runInShell: true)
+                    }
+                  else
+                    {
+                      Process.run("xdg-open", [launcherConfig.configFile.path],
+                          runInShell: true)
+                    }
                 },
               ),
             ),
@@ -446,6 +501,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             value ?? launcherConfig.gelbooruTags;
                       },
                     ),
+                    SizedBox.fromSize(size: const Size(0, 50)),
+                    RichText(
+                      text: TextSpan(
+                          style: const TextStyle(color: Colors.grey),
+                          children: [
+                            const TextSpan(
+                                style: Styles.bold, text: "About:\n"),
+                            const TextSpan(text: "Author: Circl3s\n"),
+                            const TextSpan(
+                                text: "Launcher version: $launcherVersion\n"),
+                            TextSpan(
+                              text: "Logs: $_logsInfo",
+                            )
+                          ]),
+                    )
                   ],
                 ),
               ),

@@ -174,15 +174,17 @@ class _NekoBackgroundState extends State<NekoBackground> {
       var post = json["post"][0];
       var img = post["file_url"];
       var id = post["id"];
-      // var ratio = post["height"] / post["width"];
+      var ratio = post["height"] / post["width"];
+      var safe = post["rating"] == "safe";
       setState(() {
         link = "https://gelbooru.com/index.php?page=post&s=view&id=$id";
         background = FadeInImage.memoryNetwork(
           placeholder: kTransparentImage,
           image: img,
           fit: BoxFit.cover,
-          // alignment: ratio >= 1.2 ? Alignment.topCenter : Alignment.center,
-          alignment: Alignment.center,
+          alignment:
+              (ratio >= 1.2 && safe) ? Alignment.topCenter : Alignment.center,
+          // alignment: Alignment.center,
         );
       });
       Fimber.i("Successfully set background to $img.");
@@ -283,5 +285,40 @@ class _UpdateCheckerState extends State<UpdateChecker> {
                 launch(releaseLink);
               }
             : null);
+  }
+}
+
+class ErrorScreen extends StatelessWidget {
+  const ErrorScreen({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final error = ModalRoute.of(context)!.settings.arguments;
+    return Scaffold(
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text(
+              "An error occurred! :(",
+              style: TextStyle(fontSize: 24),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              error.toString(),
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 8),
+            TextButton.icon(
+              icon: const Icon(Icons.arrow_left),
+              label: const Text("Back"),
+              onPressed: () {
+                Navigator.of(context).pushReplacementNamed("/");
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

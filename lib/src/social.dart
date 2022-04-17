@@ -55,7 +55,7 @@ class NekoUser extends ChangeNotifier {
       uid: row["id"],
       name: row["username"],
       activityType: ActivityType.values[row["activity_type"] as int],
-      activity: row["activity_details"],
+      activity: row["activity_details"] ?? "",
       lastActivity: row["activity_timestamp"] != null
           ? DateTime.parse(row["activity_timestamp"])
           : null,
@@ -125,14 +125,19 @@ class _SocialState extends State<Social> {
   }
 
   Future<void> _load() async {
-    await supabase.client
-        .from("profiles")
-        .select()
-        .eq("id", supabase.client.auth.currentUser!.id)
-        .execute()
-        .then((response) {
-      userProfile = NekoUser.fromRow(response.data[0]);
-    });
+    try {
+      await supabase.client
+          .from("profiles")
+          .select()
+          .eq("id", supabase.client.auth.currentUser!.id)
+          .execute()
+          .then((response) {
+        userProfile = NekoUser.fromRow(response.data[0]);
+      });
+    } catch (e) {
+      Fimber.e("Error loading user profile: $e");
+      Navigator.pushReplacementNamed(context, "/error", arguments: e);
+    }
   }
 
   @override
