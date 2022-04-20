@@ -41,7 +41,7 @@ class NekoUser extends ChangeNotifier {
       lastActivity = data.newRecord!["activity_timestamp"] != null
           ? DateTime.parse(data.newRecord!["activity_timestamp"])
           : null;
-      avatar = data.newRecord!["avatar_url"];
+      avatar = data.newRecord!?["avatar_url"];
       notifyListeners();
     }).subscribe();
     // subscription.onError((error) {

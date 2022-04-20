@@ -130,7 +130,17 @@ class Game extends ChangeNotifier {
     if (exec.isEmpty) {
       return;
     }
-    Process.run("explorer", [File(exec).parent.path]);
+    if (Platform.isWindows)
+      {
+        Process.run(
+            "explorer", [File(exec).parent.path],
+            runInShell: true);
+      }
+    else
+      {
+        Process.run("xdg-open", [File(exec).parent.path],
+            runInShell: true);
+      }
   }
 
   void favouriteToggle() {
@@ -830,8 +840,17 @@ class GameConfigState extends State<GameConfig> {
                 splashRadius: Styles.splash,
                 icon: const Icon(Icons.edit),
                 onPressed: () => {
-                  Process.run("start", ['"edit"', widget.game.path],
-                      runInShell: true)
+                  if (Platform.isWindows)
+                    {
+                      Process.run(
+                          "start", ['"edit"', widget.game.path],
+                          runInShell: true)
+                    }
+                  else
+                    {
+                      Process.run("xdg-open", [widget.game.path],
+                          runInShell: true)
+                    }
                 },
               ),
             ),
