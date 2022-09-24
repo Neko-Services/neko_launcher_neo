@@ -9,7 +9,6 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
-import 'package:flutter_improved_scrolling/flutter_improved_scrolling.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:neko_launcher_neo/main.dart';
@@ -1044,26 +1043,34 @@ enum Filtering { all, favourite, neverPlayed }
 
 class GameListState extends State<GameList> {
   List<Game> games = [];
+  List<Game> view = [];
+  String searchQuery = "";
   Sorting sorting = Sorting.nameAsc;
   final _sortingKey = GlobalKey<PopupMenuButtonState>();
-  final _controller = ScrollController();
 
   void sort() {
     Fimber.i("Sorting game list: $sorting.");
     switch (sorting) {
       case Sorting.nameAsc:
-        games.sort((a, b) => a.name.compareTo(b.name));
+        view.sort((a, b) => a.name.compareTo(b.name));
         break;
       case Sorting.nameDesc:
-        games.sort((a, b) => b.name.compareTo(a.name));
+        view.sort((a, b) => b.name.compareTo(a.name));
         break;
       case Sorting.timeAsc:
-        games.sort((a, b) => a.time.compareTo(b.time));
+        view.sort((a, b) => a.time.compareTo(b.time));
         break;
       case Sorting.timeDesc:
-        games.sort((a, b) => b.time.compareTo(a.time));
+        view.sort((a, b) => b.time.compareTo(a.time));
         break;
     }
+  }
+
+  void search(String query) {
+    setState(() {
+      searchQuery = query;
+      view = games.where((game) => game.name.toLowerCase().contains(query.toLowerCase())).toList();
+    });
   }
 
   @override
@@ -1085,6 +1092,8 @@ class GameListState extends State<GameList> {
           }
         }
       });
+      view = games;
+      search(searchQuery);
     });
   }
 
@@ -1163,36 +1172,42 @@ class GameListState extends State<GameList> {
           ),
         ),
         games.isNotEmpty
-            ? Expanded(
-                child: ImprovedScrolling(
-                  enableCustomMouseWheelScrolling: true,
-                  customMouseWheelScrollConfig:
-                      const CustomMouseWheelScrollConfig(
-                    scrollAmountMultiplier: 12.0,
-                    scrollDuration: Duration(milliseconds: 400),
-                    mouseWheelTurnsThrottleTimeMs: 1,
-                  ),
-                  scrollController: _controller,
+            ? view.isNotEmpty 
+              ? Expanded(
                   child: ListView.builder(
-                    physics: const NeverScrollableScrollPhysics(),
-                    controller: _controller,
-                    itemCount: games.length,
+                    physics: const BouncingScrollPhysics(decelerationRate: ScrollDecelerationRate.fast),
+                    itemCount: view.length,
                     itemBuilder: (context, index) {
                       return GameButton(
-                        game: games[index],
+                        game: view[index],
                         onTap: () {
-                          games[index].update();
+                          view[index].update();
                           if (navigatorKey.currentState!.canPop()) {
                             navigatorKey.currentState!.pop();
                           }
                           navigatorKey.currentState!.pushReplacementNamed(
                             "/game",
-                            arguments: games[index],
+                            arguments: view[index],
                           );
                         },
                       );
                     },
                   ),
+                )
+              : Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Center(
+                      child: Text("Nothing found... ",
+                          style: TextStyle(
+                              fontSize: 24,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onBackground)),
+                    ),
+                  ],
                 ),
               )
             : Expanded(
@@ -1220,6 +1235,19 @@ class GameListState extends State<GameList> {
                     )
                   ],
                 ),
+              ),
+              Padding(
+                padding: const EdgeInsets.all(8),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        decoration: const InputDecoration(labelText: "Search...", prefixIcon: Icon(Icons.search)),
+                        onChanged: search,
+                      ),
+                    ),
+                  ],
+                )
               )
       ],
     );
