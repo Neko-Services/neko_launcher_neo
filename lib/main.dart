@@ -15,27 +15,32 @@ final navigatorKey = GlobalKey<NavigatorState>();
 final listKey = GlobalKey<GameListState>();
 
 final gamesFolder = Platform.isLinux
-    ? Directory(
-        "${Platform.environment["HOME"]!}/.local/share/neko-launcher/games")
+    ? Directory("${Platform.environment["HOME"]!}/.local/share/neko-launcher/games")
     : Directory("${Platform.environment["APPDATA"]!}\\neko-launcher\\games");
+
+final logsFolder = Platform.isLinux
+    ? Directory("${Platform.environment["HOME"]!}/.local/share/neko-launcher/logs")
+    : Directory("${Platform.environment["APPDATA"]!}\\neko-launcher\\logs");
 
 final launcherConfig = LauncherConfig(Platform.isLinux
     ? File("${Platform.environment["HOME"]!}/.config/neko-launcher.json")
     : File("${Platform.environment["APPDATA"]!}\\neko-launcher\\config.json"));
 
 //! Update before publishing
-const launcherVersion = "v0.2.2-alpha";
+const launcherVersion = "v0.3.0-alpha";
 
 late final Supabase supabase;
 final GameDaemon gameDaemon = GameDaemon();
 NekoUser? userProfile;
-final logFolder = Directory("./logs");
 
 void main() async {
+  if (!logsFolder.existsSync()) {
+    logsFolder.createSync(recursive: true);
+  }
   Fimber.plantTree(TimedRollingFileTree(
-      filenamePrefix: "logs${Platform.pathSeparator}log_"));
+      filenamePrefix: "${logsFolder.path}${Platform.pathSeparator}log_"));
   Fimber.i("Starting Neko Launcher...");
-  Fimber.i("Ensuring game folder exists at ${gamesFolder.absolute}.");
+  Fimber.i("Ensuring game folder exists at ${gamesFolder.absolute.path}.");
   if (!gamesFolder.existsSync()) {
     gamesFolder.createSync(recursive: true);
   }
@@ -323,8 +328,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     int fileNum = 0;
     int totalSize = 0;
 
-    if (logFolder.existsSync()) {
-      final files = logFolder.listSync(recursive: true);
+    if (logsFolder.existsSync()) {
+      final files = logsFolder.listSync(recursive: true);
       fileNum = files.length;
       for (final file in files) {
         if (file is File) {
@@ -518,7 +523,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       alignment: MainAxisAlignment.start,
                       children: [ElevatedButton(
                         onPressed: () => {
-                          launchUrl(Uri.file(logFolder.path))
+                          launchUrl(Uri.file(logsFolder.path))
                         },
                         child: const Text("Open logs folder"),
                       )],
