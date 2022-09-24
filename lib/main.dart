@@ -514,11 +514,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             )
                           ]),
                     ),
-                    ElevatedButton(
-                      onPressed: () => {
-                        launchUrl(Uri.file(logFolder.path))
-                      },
-                      child: const Text("Open Logs folder"),
+                    ButtonBar(
+                      alignment: MainAxisAlignment.start,
+                      children: [ElevatedButton(
+                        onPressed: () => {
+                          launchUrl(Uri.file(logFolder.path))
+                        },
+                        child: const Text("Open logs folder"),
+                      )],
                     )
                   ],
                 ),
