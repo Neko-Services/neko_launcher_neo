@@ -252,8 +252,7 @@ class _UpdateCheckerState extends State<UpdateChecker> {
   void initState() {
     super.initState();
     Fimber.i("Checking for updates...");
-    http
-        .get(Uri.parse(
+    http.get(Uri.parse(
             "https://api.github.com/repos/Neko-Services/neko_launcher_neo/releases"))
         .then((response) {
       var json = jsonDecode(response.body);

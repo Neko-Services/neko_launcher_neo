@@ -48,3 +48,6 @@ app.*.map.json
 # Logs
 **/logs/
 log_*.txt
+
+# Packaged execs
+archives/
