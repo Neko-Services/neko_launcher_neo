@@ -41,7 +41,7 @@ class NekoUser extends ChangeNotifier {
       lastActivity = data.newRecord!["activity_timestamp"] != null
           ? DateTime.parse(data.newRecord!["activity_timestamp"])
           : null;
-      avatar = data.newRecord!?["avatar_url"];
+      avatar = data.newRecord!["avatar_url"] ?? "https://byxhhsabmioakiwfrcud.supabase.in/storage/v1/object/public/avatars/neko64.png";
       notifyListeners();
     }).subscribe();
     // subscription.onError((error) {
@@ -66,14 +66,18 @@ class NekoUser extends ChangeNotifier {
   void updateActivity(ActivityType type, {String? details}) {
     stdout.writeln("Updating activity");
     supabase.client
-        .from("profiles:id=eq.$uid")
+        .from("profiles")
         .update({
           "activity_type": type.index,
           "activity_details": details,
           "activity_timestamp": DateTime.now().toUtc().toIso8601String()
         })
+        .eq("id", uid)
         .execute()
-        .then((_) {
+        .then((response) {
+          if (response.hasError) {
+            Fimber.e("Error updating activity: ${response.error}");
+          }
           stdout.writeln("Executed update");
         });
   }
