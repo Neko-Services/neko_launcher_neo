@@ -1,9 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:window_size/window_size.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:fimber_io/fimber_io.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:neko_launcher_neo/src/games.dart';
 import 'package:neko_launcher_neo/src/stylesheet.dart';
@@ -16,12 +16,12 @@ final listKey = GlobalKey<GameListState>();
 
 final gamesFolder = Platform.isLinux
     ? Directory(
-        Platform.environment["HOME"]! + "/.local/share/neko-launcher/games")
-    : Directory(Platform.environment["APPDATA"]! + "\\neko-launcher\\games");
+        "${Platform.environment["HOME"]!}/.local/share/neko-launcher/games")
+    : Directory("${Platform.environment["APPDATA"]!}\\neko-launcher\\games");
 
 final launcherConfig = LauncherConfig(Platform.isLinux
-    ? File(Platform.environment["HOME"]! + "/.config/neko-launcher.json")
-    : File(Platform.environment["APPDATA"]! + "\\neko-launcher\\config.json"));
+    ? File("${Platform.environment["HOME"]!}/.config/neko-launcher.json")
+    : File("${Platform.environment["APPDATA"]!}\\neko-launcher\\config.json"));
 
 //! Update before publishing
 const launcherVersion = "v0.2.2-alpha";
@@ -33,7 +33,7 @@ final logFolder = Directory("./logs");
 
 void main() async {
   Fimber.plantTree(TimedRollingFileTree(
-      filenamePrefix: "logs" + Platform.pathSeparator + "log_"));
+      filenamePrefix: "logs${Platform.pathSeparator}log_"));
   Fimber.i("Starting Neko Launcher...");
   Fimber.i("Ensuring game folder exists at ${gamesFolder.absolute}.");
   if (!gamesFolder.existsSync()) {
@@ -41,9 +41,7 @@ void main() async {
   }
   WidgetsFlutterBinding.ensureInitialized();
   Fimber.i("Setting window title.");
-  setWindowTitle("Neko Launcher");
   Fimber.i("Setting minimum window size.");
-  setWindowMinSize(const Size(1000, 563));
   Fimber.i("Initializing Supabase connection.");
   await Supabase.initialize(
       url: "https://byxhhsabmioakiwfrcud.supabase.co",
@@ -207,7 +205,7 @@ class Home extends StatelessWidget {
             ),
             Text(
               'Neko Launcher ネオ',
-              style: Theme.of(context).textTheme.headline4,
+              style: Theme.of(context).textTheme.headlineMedium,
               textAlign: TextAlign.center,
             ),
             Row(
@@ -515,6 +513,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               text: "Logs: $_logsInfo",
                             )
                           ]),
+                    ),
+                    ElevatedButton(
+                      onPressed: () => {
+                        launchUrl(Uri.file(logFolder.path))
+                      },
+                      child: const Text("Open Logs folder"),
                     )
                   ],
                 ),

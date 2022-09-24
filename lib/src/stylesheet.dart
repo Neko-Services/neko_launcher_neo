@@ -223,7 +223,7 @@ class _NekoBackgroundState extends State<NekoBackground> {
                     onPressed: link == ""
                         ? null
                         : () {
-                            launch(link);
+                            launchUrl(Uri.parse(link));
                           },
                     icon: const Icon(Icons.open_in_browser))
               ],
@@ -282,7 +282,7 @@ class _UpdateCheckerState extends State<UpdateChecker> {
                 : "New version available!"),
         onPressed: updateAvailable
             ? () {
-                launch(releaseLink);
+                launchUrl(Uri.parse(releaseLink));
               }
             : null);
   }

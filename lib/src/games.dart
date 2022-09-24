@@ -5,10 +5,12 @@ import 'dart:io';
 
 import 'package:fimber_io/fimber_io.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
 import 'package:flutter_improved_scrolling/flutter_improved_scrolling.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:neko_launcher_neo/main.dart';
 import 'package:neko_launcher_neo/src/daemon.dart';
@@ -43,11 +45,13 @@ class Game extends ChangeNotifier {
   Game.fromExe(this.exec) {
     Fimber.i("Creating game object from executable $exec");
     var file = File(exec);
+    // ignore: prefer_interpolation_to_compose_strings
     path = gamesFolder.path +
         Platform.pathSeparator +
         (file.path.split(Platform.pathSeparator).last).split(".").first +
         ".json";
     if (File(path).existsSync()) {
+      // ignore: prefer_interpolation_to_compose_strings
       path = gamesFolder.path +
           Platform.pathSeparator +
           (file.path.split(Platform.pathSeparator).last).split(".").first +
@@ -130,17 +134,7 @@ class Game extends ChangeNotifier {
     if (exec.isEmpty) {
       return;
     }
-    if (Platform.isWindows)
-      {
-        Process.run(
-            "explorer", [File(exec).parent.path],
-            runInShell: true);
-      }
-    else
-      {
-        Process.run("xdg-open", [File(exec).parent.path],
-            runInShell: true);
-      }
+    launchUrl(Uri.file(File(exec).parent.path));
   }
 
   void favouriteToggle() {
@@ -297,10 +291,10 @@ class GameButton extends StatefulWidget {
   }) : super(key: key);
 
   @override
-  _GameButtonState createState() => _GameButtonState();
+  GameButtonState createState() => GameButtonState();
 }
 
-class _GameButtonState extends State<GameButton> {
+class GameButtonState extends State<GameButton> {
   bool isHovering = false;
 
   void refreshState() {
@@ -607,9 +601,6 @@ class GameDetailsState extends State<GameDetails> {
         ),
         Scaffold(
             floatingActionButton: FloatingActionButton(
-              child: Icon(widget.game.favourite
-                  ? Icons.favorite
-                  : Icons.favorite_border),
               onPressed: () => {
                 setState(() => {widget.game.favouriteToggle()}),
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -631,6 +622,9 @@ class GameDetailsState extends State<GameDetails> {
               tooltip: widget.game.favourite
                   ? "Remove from favourites"
                   : "Add to favourites",
+              child: Icon(widget.game.favourite
+                  ? Icons.favorite
+                  : Icons.favorite_border),
             ),
             backgroundColor: Colors.transparent,
             appBar: AppBar(
@@ -638,9 +632,20 @@ class GameDetailsState extends State<GameDetails> {
               backgroundColor: Colors.transparent,
               title: Row(
                 children: [
-                  Text(
-                    widget.game.name,
-                    style: const TextStyle(fontSize: 36),
+                  TextButton(
+                    onPressed: () {
+                      Clipboard.setData(ClipboardData(text: widget.game.name));
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      behavior: SnackBarBehavior.floating,
+                      width: 600,
+                      duration: Duration(seconds: 2),
+                      content: Text("Title copied to clipboard!"),
+                    ));
+                    },
+                    child: Text(
+                      widget.game.name,
+                      style: TextStyle(fontSize: 36, color: Theme.of(context).colorScheme.onBackground),
+                    ),
                   ),
                   if (widget.game.nsfw)
                     const Padding(
@@ -662,18 +667,19 @@ class GameDetailsState extends State<GameDetails> {
                             padding:
                                 const EdgeInsets.symmetric(horizontal: 8.0),
                             child: Tooltip(
-                              child: Icon(
-                                Icons.error,
-                                color: Theme.of(context).errorColor,
-                              ),
                               message: missingWine
                                   ? "Install and configure Wine to play Windows games."
                                   : missingLE
                                       ? "Set LocaleEmulator path in the Launcher's settings to play."
                                       : "Unknown error",
+                              child: Icon(
+                                Icons.error,
+                                color: Theme.of(context).colorScheme.error,
+                              ),
                             ),
                           ),
                         ElevatedButton(
+                            onPressed: canPlay ? play : null,
                             child: Row(
                               children: widget.game.emulate == true
                                   ? ([
@@ -692,16 +698,15 @@ class GameDetailsState extends State<GameDetails> {
                                         style: Styles.bold,
                                       ),
                                     ]),
-                            ),
-                            onPressed: canPlay ? play : null),
+                            )),
                       ],
                     ),
                     OutlinedButton(
+                        onPressed: widget.game.folder,
                         child: const Text(
                           "FOLDER",
                           style: Styles.bold,
-                        ),
-                        onPressed: widget.game.folder),
+                        )),
                     OutlinedButton(
                         child: const Text(
                           "CONFIG",
@@ -831,7 +836,7 @@ class GameConfigState extends State<GameConfig> {
     return Scaffold(
         appBar: AppBar(
           backgroundColor: Theme.of(context).colorScheme.primary,
-          title: Text("Editing " + widget.game.name),
+          title: Text("Editing ${widget.game.name}"),
           actions: [
             Padding(
               padding: const EdgeInsets.all(8.0),
@@ -840,17 +845,7 @@ class GameConfigState extends State<GameConfig> {
                 splashRadius: Styles.splash,
                 icon: const Icon(Icons.edit),
                 onPressed: () => {
-                  if (Platform.isWindows)
-                    {
-                      Process.run(
-                          "start", ['"edit"', widget.game.path],
-                          runInShell: true)
-                    }
-                  else
-                    {
-                      Process.run("xdg-open", [widget.game.path],
-                          runInShell: true)
-                    }
+                  launchUrl(Uri.file(widget.game.path))
                 },
               ),
             ),
@@ -976,7 +971,7 @@ class GameConfigState extends State<GameConfig> {
                                       Text(field.errorText ?? "",
                                           style: TextStyle(
                                               color:
-                                                  Theme.of(context).errorColor))
+                                                  Theme.of(context).colorScheme.error))
                                   ],
                                 );
                               },
