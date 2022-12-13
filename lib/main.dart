@@ -13,6 +13,7 @@ import 'package:neko_launcher_neo/src/daemon.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 final listKey = GlobalKey<GameListState>();
+final bgKey = GlobalKey<NekoBackgroundState>();
 
 final gamesFolder = Platform.isLinux
     ? Directory("${Platform.environment["HOME"]!}/.local/share/neko-launcher/games")
@@ -174,6 +175,7 @@ class Home extends StatelessWidget {
         },
       ),
       body: NekoBackground(
+        key: bgKey,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
