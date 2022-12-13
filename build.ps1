@@ -6,7 +6,7 @@ Write-Output "Ensuring the right icon..."
 Copy-Item ".\assets\neko.ico" ".\windows\runner\resources\app_icon.ico"
 if ($?) {
     Write-Output "Building Neko Launcher Neo!"
-    flutter.bat build windows
+    flutter.bat build windows --build-name $version
     if ($LASTEXITCODE -eq 0) {
         Write-Output "Copying necessary DLL files..."
         try {

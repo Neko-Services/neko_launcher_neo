@@ -28,7 +28,7 @@ final launcherConfig = LauncherConfig(Platform.isLinux
     : File("${Platform.environment["APPDATA"]!}\\neko-launcher\\config.json"));
 
 //! Update before publishing
-const launcherVersion = "v0.3.0-alpha";
+const launcherVersion = "v0.3.1-alpha";
 
 late final Supabase supabase;
 final GameDaemon gameDaemon = GameDaemon();
