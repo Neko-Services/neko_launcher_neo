@@ -493,7 +493,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 },
                                 icon: const Icon(Icons.refresh)),
                           ),
-                          suffixText: "-mp4 -webm sort:random",
+                          suffixText: "-video sort:random",
                           labelText: "Home screen background tags",
                           hintText: "Gelbooru tags",
                           helperText:

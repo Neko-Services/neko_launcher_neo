@@ -167,7 +167,7 @@ class _NekoBackgroundState extends State<NekoBackground> {
     Fimber.i("Sending request to Gelbooru...");
     http
         .get(Uri.parse(
-            'https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&limit=1&tags=${launcherConfig.gelbooruTags.trim().replaceAll(" ", "+")}+-webm+-mp4+sort:random'))
+            'https://gelbooru.com/index.php?page=dapi&s=post&q=index&json=1&limit=1&tags=${launcherConfig.gelbooruTags.trim().replaceAll(" ", "+")}+-video+sort:random'))
         .then((response) {
       var json = jsonDecode(response.body);
       Fimber.i("Received and decoded response from Gelbooru.");
