@@ -960,6 +960,11 @@ enum Sorting {
 
 enum Filtering { all, favourite, neverPlayed }
 
+enum TimeOperation {
+  moreThan,
+  lessThan
+}
+
 class GameListState extends State<GameList> {
   List<Game> games = [];
   List<Game> view = [];
@@ -986,9 +991,88 @@ class GameListState extends State<GameList> {
   }
 
   void search(String query) {
+    var words = query.toLowerCase().split(RegExp(r' (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'));
+    var fav = false;
+    var tags = [];
+    var desc = "";
+    var humanTime = 0.0;
+    var time = 0;
+    var timeOperation = TimeOperation.moreThan;
+    var keywords = [];
+    for (var word in words) {
+      if (word == "!fav" || word == "!favorite" || word == "!favourite" || word == "!f") {
+        keywords.add(word);
+        fav = true;
+      }
+      if (word.startsWith("!tag:") || word.startsWith("!tags:") || word.startsWith("!t:")) {
+        keywords.add(word);
+        tags.addAll(word.split(":")[1].split(","));
+      }
+      if (word.startsWith("!desc:") || word.startsWith("!description:") || word.startsWith("!d:")) {
+        keywords.add(word);
+        desc = word.split(":")[1].replaceAll('"', "");
+      }
+      if (word.startsWith("!time")) {
+        keywords.add(word);
+        if (word[5] == ">") {
+          timeOperation = TimeOperation.moreThan;
+        } else if (word[5] == "<") {
+          timeOperation = TimeOperation.lessThan;
+        }
+        try {
+          humanTime = double.parse(word.substring(6, word.length - 1));
+        } catch (e) {
+          humanTime = double.parse(word.substring(6));
+        } finally {
+          switch (word.substring(word.length - 1).toLowerCase()) {
+            case "s":
+              time = humanTime.round();
+              break;
+            case "m":
+              time = (humanTime * 60).round();
+              break;
+            case "h":
+              time = (humanTime * 60 * 60).round();
+              break;
+            case "d":
+              time = (humanTime * 60 * 60 * 24).round();
+              break;
+            default:
+              time = humanTime.round();
+              break;
+          }
+        }
+      }
+    }
+    words.removeWhere((word) => keywords.contains(word));
+    var newView = games.where((game) => game.name.toLowerCase().contains(words.join(" "))).toList();
+    if (tags.isNotEmpty) {
+      for (String tag in tags) {
+        newView = newView.where((game) => game.tags.map((e) => e.toString().toLowerCase()).contains(tag.replaceAll('"', ""))).toList();
+      }
+    }
+    if (time > 0) {
+      switch (timeOperation) {
+        case TimeOperation.moreThan:
+          newView = newView.where((game) => game.time > time).toList();
+          break;
+        case TimeOperation.lessThan:
+          newView = newView.where((game) => game.time < time).toList();
+          break;
+        default:
+          newView = newView.where((game) => game.time > time).toList();
+          break;
+      }
+    }
+    if (desc.isNotEmpty) {
+      newView = newView.where((game) => game.desc.toLowerCase().contains(desc.toLowerCase())).toList();
+    }
+    if (fav) {
+      newView = newView.where((game) => game.favourite).toList();
+    }
     setState(() {
       searchQuery = query;
-      view = games.where((game) => game.name.toLowerCase().contains(query.toLowerCase())).toList();
+      view = newView;
     });
   }
 

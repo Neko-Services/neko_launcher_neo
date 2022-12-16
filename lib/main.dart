@@ -28,7 +28,7 @@ final launcherConfig = LauncherConfig(Platform.isLinux
     : File("${Platform.environment["APPDATA"]!}\\neko-launcher\\config.json"));
 
 //! Update before publishing
-const launcherVersion = "v0.3.1-alpha";
+const launcherVersion = "v0.3.2-alpha";
 
 late final Supabase supabase;
 final GameDaemon gameDaemon = GameDaemon();
@@ -528,6 +528,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           launchUrl(Uri.file(logsFolder.path))
                         },
                         child: const Text("Open logs folder"),
+                      ),
+                      ElevatedButton(
+                        onPressed: () => {
+                          launchUrl(Uri.parse("https://github.com/Neko-Services/neko_launcher_neo/wiki"))
+                        },
+                        child: const Text("Open wiki"),
                       )],
                     )
                   ],

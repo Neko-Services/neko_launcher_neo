@@ -18,7 +18,7 @@ if ($?) {
             return
         }
         Write-Output "Deleting old archive(s)..."
-        Remove-Item ".\archives\*" -Filter "*-windows.zip"
+        Remove-Item ".\archives\*" -Filter "*-$version-windows.zip"
         if ($?) {
             Write-Output "Packaging new archive..."
             7z.exe a ".\archives\neko_launcher_neo-$version-windows.zip" ".\build\windows\runner\Release\*"
