@@ -13,7 +13,7 @@ A game launcher with focus on visual novels, but not only.
 - [x] Track your play time
     - Total play time
     - Last month daily activity
-- [ ] Filter and search your game library
+- [x] Filter and search your game library
 - [ ] VNDB integration
     - User ratings of games you play
     - Synchronize tags and descriptions
