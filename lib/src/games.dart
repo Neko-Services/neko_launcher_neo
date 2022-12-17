@@ -925,7 +925,7 @@ class GameConfigState extends State<GameConfig> {
                         builder: (FormFieldState<bool> field) {
                           return Row(
                             children: [
-                              const Text("VNDB Integration"),
+                              const Text("Show VNDB info"),
                               Switch(
                                 value: field.value ?? false,
                                 onChanged: (bool value) {
@@ -940,15 +940,26 @@ class GameConfigState extends State<GameConfig> {
                         child: TextFormField(
                           key: _vndbidKey,
                           initialValue: widget.game.vndbid,
-                          decoration: InputDecoration(
+                          decoration: const InputDecoration(
                             labelText: "VNDB ID",
-                            enabled: _vndbKey.currentState?.value ?? widget.game.vndbIntegration,
                             helperText: "If left empty the launcher will try to deduce the game from the title."
                           ),
                           onSaved: (String? newValue) {
                             widget.game.vndbid = newValue ?? widget.game.vndbid;
                           },
                         )
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                        child: OutlinedButton(
+                          onPressed: () {
+                            var vndbInstance = VNDB.fromTitle(_titleKey.currentState?.value ?? widget.game.name);
+                            vndbInstance.getInfo().then((vndb) {
+                              _vndbidKey.currentState!.didChange(vndb.id);
+                            });
+                          },
+                          child: const Text("Guess ID from title")
+                        ),
                       )
                     ],
                   ),
