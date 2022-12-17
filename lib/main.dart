@@ -535,6 +535,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           child: Radio<String>(
                                             value: "default",
                                             groupValue: field.value,
+                                            activeColor: Colors.pink,
                                             onChanged: (String? newValue) => field.didChange(newValue)
                                           ),
                                         ),
@@ -550,6 +551,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           child: Radio<String>(
                                             value: "english",
                                             groupValue: field.value,
+                                            activeColor: Colors.pink,
                                             onChanged: (String? newValue) => field.didChange(newValue)
                                           ),
                                         ),
@@ -565,6 +567,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                           child: Radio<String>(
                                             value: "original",
                                             groupValue: field.value,
+                                            activeColor: Colors.pink,
                                             onChanged: (String? newValue) => field.didChange(newValue)
                                           ),
                                         ),
@@ -572,6 +575,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       ],
                                     ),
                                   ),
+                                  const Expanded(
+                                    flex: 6,
+                                    child: SizedBox(),
+                                  )
                                 ],
                               ),
                               const Text(
