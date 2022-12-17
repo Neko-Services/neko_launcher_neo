@@ -735,9 +735,12 @@ class GameDetailsState extends State<GameDetails> {
                           child: NekoCard(
                           title: "Description",
                           body: Expanded(
-                            child: SingleChildScrollView(
-                              child: Text(widget.game.desc)
-                            )
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(maxHeight: 164),
+                              child: SingleChildScrollView(
+                                child: Text(widget.game.desc)
+                              ),
+                            ),
                           ),
                       )),
                       widget.game.vndbIntegration

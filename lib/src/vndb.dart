@@ -79,53 +79,55 @@ class VNDBCardState extends State<VNDBCard> {
   Widget build(BuildContext context) {
     return NekoCard(
       title: "VNDB",
-      body: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          DecoratedBox(
-            decoration: BoxDecoration(
-              color: widget.vndb.rating != null ? Color.lerp(Colors.red, Colors.green, (widget.vndb.rating ?? 0) / 100) : Colors.grey,
-              borderRadius: BorderRadius.circular(8)
-            ),
-            child: SizedBox.square(
-              dimension: 80,
-              child: Center(
-                child: Text(
-                  "${widget.vndb.rating?.round() ?? '?'}",
-                  style: const TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold
+      body: Expanded(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            DecoratedBox(
+              decoration: BoxDecoration(
+                color: widget.vndb.rating != null ? Color.lerp(Colors.red, Colors.green, (widget.vndb.rating ?? 0) / 100) : Colors.grey,
+                borderRadius: BorderRadius.circular(8)
+              ),
+              child: SizedBox.square(
+                dimension: 80,
+                child: Center(
+                  child: Text(
+                    "${widget.vndb.rating?.round() ?? '?'}",
+                    style: const TextStyle(
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold
+                    ),
                   ),
                 ),
               ),
             ),
-          ),
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.start,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    widget.vndb.title ?? "???",
-                    style: const TextStyle(
-                        fontSize: 20,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                    softWrap: false,
-                  ),
-                  Text(
-                    "(${widget.vndb.released?.year ?? 'Unknown release'})",
-                    style: const TextStyle(
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.vndb.title ?? "???",
+                      style: const TextStyle(
                           fontSize: 20,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                      softWrap: false,
                     ),
-                  )
-                ],
+                    Text(
+                      "(${widget.vndb.released?.year ?? 'Unknown release'})",
+                      style: const TextStyle(
+                            fontSize: 20,
+                      ),
+                    )
+                  ],
+                ),
               ),
-            ),
-          )
-        ]
+            )
+          ]
+        ),
       ),
       actions: ButtonBar(
         alignment: MainAxisAlignment.start,
