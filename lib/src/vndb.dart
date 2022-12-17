@@ -18,20 +18,20 @@ class VNDB extends ChangeNotifier {
 
   VNDB.fromTitle(this.title);
 
-  Future<void> getInfo() async {
+  Future<VNDB> getInfo() async {
     Map<String, dynamic> query = {
-      "fields": "id, title, released, rating",
+      "fields": "id, title, released, rating, description",
       "results": 1,
       "sort": "popularity",
       "reverse": true
     };
-    if (id == null) {
+    if (id == null || id == "") {
       query["filters"] = ["search", "=", title];
     } else {
       query["filters"] = ["id", "=", "$id"];
     }
 
-    http.post(
+    await http.post(
       apiUrl,
       headers: {"Content-Type": "application/json"},
       body: json.encode(query)
@@ -41,8 +41,11 @@ class VNDB extends ChangeNotifier {
       title = response["results"][0]["title"];
       rating ??= response["results"][0]["rating"] + 0.0;
       released ??= DateTime.parse(response["results"][0]["released"]);
+      description ??= response["results"][0]["description"];
       notifyListeners();
+      return this;
     });
+    return this;
   }
 }
 

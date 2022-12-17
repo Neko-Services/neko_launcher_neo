@@ -109,14 +109,15 @@ class Game extends ChangeNotifier {
       nsfw = json["nsfw"] ?? false;
       vndbIntegration = json["vndb"] ?? false;
       vndbid = json["vndbid"];
-      if (vndbIntegration) {
-        if (vndbid != null) {
+      //TODO: Optimize loading VNDB data
+      if (vndbIntegration && vndb == null) {
+        if (vndbid != null && vndbid != "") {
           vndb = VNDB(vndbid);
         } else {
           vndb = VNDB.fromTitle(name);
         }
-        vndb?.getInfo();
       }
+      vndb?.getInfo();
       resolveImageProvider();
       updateActivity();
       notifyListeners();
@@ -764,9 +765,12 @@ class GameConfig extends StatefulWidget {
 
 class GameConfigState extends State<GameConfig> {
   final _formKey = GlobalKey<FormState>();
+  final _titleKey = GlobalKey<FormFieldState>();
   final _execKey = GlobalKey<FormFieldState>();
   final _bgKey = GlobalKey<FormFieldState>();
   final _vndbKey = GlobalKey<FormFieldState>();
+  final _vndbidKey = GlobalKey<FormFieldState>();
+  final _descKey = GlobalKey<FormFieldState>();
   bool pendingChanges = false;
 
   void highlightSave() {
@@ -830,6 +834,7 @@ class GameConfigState extends State<GameConfig> {
                 Padding(
                   padding: const EdgeInsets.all(8.0),
                   child: TextFormField(
+                    key: _titleKey,
                     onSaved: (newValue) =>
                         widget.game.name = newValue ?? widget.game.name,
                     initialValue: widget.game.name,
@@ -898,6 +903,7 @@ class GameConfigState extends State<GameConfig> {
                       ),
                       Expanded(
                         child: TextFormField(
+                          key: _vndbidKey,
                           initialValue: widget.game.vndbid,
                           decoration: InputDecoration(
                             labelText: "VNDB ID",
@@ -916,6 +922,7 @@ class GameConfigState extends State<GameConfig> {
                   child: Padding(
                     padding: const EdgeInsets.all(8.0),
                     child: TextFormField(
+                      key: _descKey,
                       textAlignVertical: TextAlignVertical.top,
                       expands: true,
                       maxLines: null,
@@ -988,6 +995,18 @@ class GameConfigState extends State<GameConfig> {
                                 );
                               },
                             ),
+                            const VerticalDivider(),
+                            ElevatedButton(
+                              onPressed: () {
+                                var vndbInstance = (_vndbidKey.currentState?.value ?? "") != ""
+                                  ? VNDB(_vndbidKey.currentState!.value)
+                                  : VNDB.fromTitle(_titleKey.currentState?.value ?? widget.game.name);
+                                vndbInstance.getInfo().then((vndb) {
+                                  _descKey.currentState!.didChange(vndb.description);
+                                });
+                              },
+                              child: const Text("Get description from VNDB")
+                            )
                           ],
                         ),
                       ),
