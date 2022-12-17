@@ -228,16 +228,17 @@ class Home extends StatelessWidget {
                 IconButton(
                     tooltip: "Social",
                     splashRadius: Styles.splash,
-                    onPressed: () => {
+                    onPressed: () {
+                          listKey.currentState!.enableHome();
                           if (supabase.client.auth.currentUser != null)
                             {
                               navigatorKey.currentState!
-                                  .pushReplacementNamed("/social")
+                                  .pushReplacementNamed("/social");
                             }
                           else
                             {
                               Navigator.of(context, rootNavigator: true)
-                                  .pushNamed("/login")
+                                  .pushNamed("/login");
                             }
                         },
                     icon: const Icon(Icons.person)),

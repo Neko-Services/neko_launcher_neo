@@ -196,6 +196,7 @@ class Game extends ChangeNotifier {
                 navigatorKey.currentState!.pushReplacementNamed("/");
                 stdout.writeln("Deleted $name");
                 listKey.currentState!.loadGames();
+                listKey.currentState!.disableHome();
                 Fimber.i(
                     "(Game: $name) Deleted the game and reloaded the game list.");
               },
@@ -1088,6 +1089,7 @@ class GameListState extends State<GameList> {
   List<Game> view = [];
   String searchQuery = "";
   Sorting sorting = Sorting.nameAsc;
+  bool onHomeScreen = true;
   final _sortingKey = GlobalKey<PopupMenuButtonState>();
 
   void sort() {
@@ -1216,6 +1218,14 @@ class GameListState extends State<GameList> {
     loadGames();
   }
 
+  void disableHome() {
+    setState(() => onHomeScreen = true);
+  }
+
+  void enableHome() {
+    setState(() => onHomeScreen = false);
+  }
+
   void loadGames() {
     Fimber.i("Loading games.");
     setState(() {
@@ -1249,7 +1259,8 @@ class GameListState extends State<GameList> {
                   splashRadius: Styles.splash,
                   padding: const EdgeInsets.all(1),
                   icon: const Icon(Icons.home),
-                  onPressed: () {
+                  onPressed: onHomeScreen ? null : () {
+                    disableHome();
                     navigatorKey.currentState!.pushReplacementNamed(
                       "/",
                     );
@@ -1318,6 +1329,7 @@ class GameListState extends State<GameList> {
                       return GameButton(
                         game: view[index],
                         onTap: () {
+                          enableHome();
                           view[index].update();
                           if (navigatorKey.currentState!.canPop()) {
                             navigatorKey.currentState!.pop();
