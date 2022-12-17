@@ -1,8 +1,10 @@
+import 'dart:collection';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:neko_launcher_neo/src/stylesheet.dart';
+import 'package:neko_launcher_neo/main.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class VNDB extends ChangeNotifier {
@@ -20,7 +22,7 @@ class VNDB extends ChangeNotifier {
 
   Future<VNDB> getInfo() async {
     Map<String, dynamic> query = {
-      "fields": "id, title, released, rating, description",
+      "fields": "id, title, titles{title, latin, official, main, lang}, released, rating, description",
       "results": 1,
       "sort": "popularity",
       "reverse": true
@@ -37,8 +39,27 @@ class VNDB extends ChangeNotifier {
       body: json.encode(query)
     ).then((res) {
       var response = json.decode(res.body);
+      var titleList = response["results"][0]["titles"] as List<dynamic>;
+      var defaultTitle = response["results"][0]["title"];
+      var originalTitle = titleList.singleWhere((title) => title["main"])["title"];
+      // ignore: avoid_init_to_null
+      var englishTitle = null;
+      try {
+        englishTitle = titleList.singleWhere((title) => title["lang"] == "en")["title"];
+      } catch (e) {
+        //
+      }
       id ??= response["results"][0]["id"];
-      title = response["results"][0]["title"];
+      switch (launcherConfig.vndbTitles) {
+        case "original":
+          title = originalTitle ?? defaultTitle;
+          break;
+        case "english":
+          title = englishTitle ?? defaultTitle;
+          break;
+        default:
+          title = defaultTitle;
+      }
       rating ??= response["results"][0]["rating"] + 0.0;
       released ??= DateTime.parse(response["results"][0]["released"]);
       description ??= response["results"][0]["description"];
