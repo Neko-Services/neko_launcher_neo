@@ -766,6 +766,7 @@ class GameConfigState extends State<GameConfig> {
   final _formKey = GlobalKey<FormState>();
   final _execKey = GlobalKey<FormFieldState>();
   final _bgKey = GlobalKey<FormFieldState>();
+  final _vndbKey = GlobalKey<FormFieldState>();
   bool pendingChanges = false;
 
   void highlightSave() {
@@ -875,9 +876,39 @@ class GameConfigState extends State<GameConfig> {
                   padding: const EdgeInsets.all(8.0),
                   child: Row(
                     children: [
-                      const Text("VNDB Integration"),
-                      Switch(onChanged: null, value: widget.game.vndbIntegration),
-                      Expanded(child: TextFormField())
+                      FormField(
+                        key: _vndbKey,
+                        initialValue: widget.game.vndbIntegration,
+                        onSaved: (bool? newValue) {
+                          widget.game.vndbIntegration = newValue ?? widget.game.vndbIntegration;
+                        },
+                        builder: (FormFieldState<bool> field) {
+                          return Row(
+                            children: [
+                              const Text("VNDB Integration"),
+                              Switch(
+                                value: field.value ?? false,
+                                onChanged: (bool value) {
+                                  field.didChange(value);
+                                }
+                              )
+                            ],
+                          );
+                        }
+                      ),
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: widget.game.vndbid,
+                          decoration: InputDecoration(
+                            labelText: "VNDB ID",
+                            enabled: _vndbKey.currentState?.value ?? widget.game.vndbIntegration,
+                            helperText: "If left empty the launcher will try to deduce the game from the title."
+                          ),
+                          onSaved: (String? newValue) {
+                            widget.game.vndbid = newValue ?? widget.game.vndbid;
+                          },
+                        )
+                      )
                     ],
                   ),
                 ),
