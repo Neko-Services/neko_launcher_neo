@@ -950,7 +950,7 @@ class GameConfigState extends State<GameConfig> {
                   padding: const EdgeInsets.all(8.0),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.end,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       IntrinsicHeight(
                         child: Row(
@@ -1005,16 +1005,33 @@ class GameConfigState extends State<GameConfig> {
                               },
                             ),
                             const VerticalDivider(),
-                            OutlinedButton(
-                              onPressed: () {
-                                var vndbInstance = (_vndbidKey.currentState?.value ?? "") != ""
-                                  ? VNDB(_vndbidKey.currentState!.value)
-                                  : VNDB.fromTitle(_titleKey.currentState?.value ?? widget.game.name);
-                                vndbInstance.getInfo().then((vndb) {
-                                  _descKey.currentState!.didChange(vndb.description);
-                                });
-                              },
-                              child: const Text("Get description from VNDB")
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  var vndbInstance = (_vndbidKey.currentState?.value ?? "") != ""
+                                    ? VNDB(_vndbidKey.currentState!.value)
+                                    : VNDB.fromTitle(_titleKey.currentState?.value ?? widget.game.name);
+                                  vndbInstance.getInfo().then((vndb) {
+                                    _titleKey.currentState!.didChange(vndb.title);
+                                  });
+                                },
+                                child: const Text("Get title from VNDB")
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                              child: OutlinedButton(
+                                onPressed: () {
+                                  var vndbInstance = (_vndbidKey.currentState?.value ?? "") != ""
+                                    ? VNDB(_vndbidKey.currentState!.value)
+                                    : VNDB.fromTitle(_titleKey.currentState?.value ?? widget.game.name);
+                                  vndbInstance.getInfo().then((vndb) {
+                                    _descKey.currentState!.didChange(vndb.description);
+                                  });
+                                },
+                                child: const Text("Get description from VNDB")
+                              ),
                             )
                           ],
                         ),
