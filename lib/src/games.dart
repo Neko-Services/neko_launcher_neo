@@ -9,6 +9,7 @@ import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:charts_flutter/flutter.dart' as charts;
+import 'package:neko_launcher_neo/src/vndb.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:neko_launcher_neo/main.dart';
@@ -32,6 +33,9 @@ class Game extends ChangeNotifier {
   bool emulate = false;
   bool favourite = false;
   bool nsfw = false;
+  bool vndbIntegration = false;
+  String? vndbid;
+  VNDB? vndb;
   late ImageProvider<Object> imgProvider;
 
   final datePattern = DateFormat("yyyy-MM-dd");
@@ -103,12 +107,22 @@ class Game extends ChangeNotifier {
       emulate = json["emulate"] ?? false;
       favourite = json["is_favourite"] ?? false;
       nsfw = json["nsfw"] ?? false;
+      vndbIntegration = json["vndb"] ?? false;
+      vndbid = json["vndbid"];
+      if (vndbIntegration) {
+        if (vndbid != null) {
+          vndb = VNDB(vndbid);
+        } else {
+          vndb = VNDB.fromTitle(name);
+        }
+        vndb?.getInfo();
+      }
       resolveImageProvider();
       updateActivity();
       notifyListeners();
     } catch (e) {
       Fimber.e("Error while updating game object: $e");
-      throw UpdateException(e);
+      rethrow;
     }
   }
 
@@ -123,11 +137,13 @@ class Game extends ChangeNotifier {
       "activity": activity,
       "emulate": emulate,
       "is_favourite": favourite,
-      "nsfw": nsfw
+      "nsfw": nsfw,
+      "vndb": vndbIntegration,
+      "vndbid": vndbid
     };
     File(path).writeAsStringSync(jsonEncode(json));
     update();
-    bgKey.currentState!.updateSummary();
+    bgKey.currentState?.updateSummary();
   }
 
   void folder() {
@@ -549,30 +565,29 @@ class GameDetailsState extends State<GameDetails> {
               shadowColor: Colors.transparent,
               backgroundColor: Colors.transparent,
               title: Row(
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  TextButton(
-                    onPressed: () {
-                      Clipboard.setData(ClipboardData(text: widget.game.name));
-                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      behavior: SnackBarBehavior.floating,
-                      width: 600,
-                      duration: Duration(seconds: 2),
-                      content: Text("Title copied to clipboard!"),
-                    ));
-                    },
-                    child: Text(
-                      widget.game.name,
-                      style: TextStyle(fontSize: 36, color: Theme.of(context).colorScheme.onBackground),
-                    ),
-                  ),
-                  if (widget.game.nsfw)
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0),
-                      child: Chip(
-                        label: Text("NSFW"),
-                        backgroundColor: Colors.redAccent,
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () {
+                        Clipboard.setData(ClipboardData(text: widget.game.name));
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        behavior: SnackBarBehavior.floating,
+                        width: 600,
+                        duration: Duration(seconds: 2),
+                        content: Text("Title copied to clipboard!"),
+                      ));
+                      },
+                      style: const ButtonStyle(alignment: Alignment.centerLeft),
+                      child: Text(
+                        widget.game.name,
+                        softWrap: false,
+                        overflow: TextOverflow.fade,
+                        textAlign: TextAlign.start,
+                        style: TextStyle(fontSize: 36, color: Theme.of(context).colorScheme.onBackground),
                       ),
                     ),
+                  ),
                 ],
               ),
               actions: [
@@ -711,14 +726,25 @@ class GameDetailsState extends State<GameDetails> {
                     ))
                   ],
                 ),
-                Row(
-                  children: [
-                    Expanded(
-                        child: NekoCard(
-                      title: "Description",
-                      body: Text(widget.game.desc),
-                    ))
-                  ],
+                IntrinsicHeight(
+                  child: Row(
+                    children: [
+                      Expanded(
+                          child: NekoCard(
+                          title: "Description",
+                          body: Expanded(
+                            child: SingleChildScrollView(
+                              child: Text(widget.game.desc)
+                            )
+                          ),
+                      )),
+                      widget.game.vndbIntegration
+                      ? Expanded(
+                        child: VNDBCard(vndb: widget.game.vndb!),
+                      )
+                      : const SizedBox.shrink()
+                    ],
+                  ),
                 )
               ],
             )),
@@ -843,6 +869,16 @@ class GameConfigState extends State<GameConfig> {
                           fieldKey: _bgKey,
                           type: FileType.image,
                         )),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Row(
+                    children: [
+                      const Text("VNDB Integration"),
+                      Switch(onChanged: null, value: widget.game.vndbIntegration),
+                      Expanded(child: TextFormField())
+                    ],
                   ),
                 ),
                 Expanded(
@@ -995,6 +1031,8 @@ class GameListState extends State<GameList> {
     var fav = false;
     var tags = [];
     var desc = "";
+    var nsfw = false;
+    var sfw = false;
     var humanTime = 0.0;
     var time = 0;
     var timeOperation = TimeOperation.moreThan;
@@ -1011,6 +1049,14 @@ class GameListState extends State<GameList> {
       if (word.startsWith("!desc:") || word.startsWith("!description:") || word.startsWith("!d:")) {
         keywords.add(word);
         desc = word.split(":")[1].replaceAll('"', "");
+      }
+      if (word == "!nsfw") {
+        keywords.add(word);
+        nsfw = true;
+      }
+      if (word == "!sfw") {
+        keywords.add(word);
+        sfw = true;
       }
       if (word.startsWith("!time")) {
         keywords.add(word);
@@ -1069,6 +1115,12 @@ class GameListState extends State<GameList> {
     }
     if (fav) {
       newView = newView.where((game) => game.favourite).toList();
+    }
+    if (nsfw) {
+      newView = newView.where((game) => game.nsfw).toList();
+    }
+    if (sfw) {
+      newView = newView.where((game) => !game.nsfw).toList();
     }
     setState(() {
       searchQuery = query;
