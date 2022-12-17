@@ -842,15 +842,35 @@ class GameConfigState extends State<GameConfig> {
               child: Column(children: [
                 Padding(
                   padding: const EdgeInsets.all(8.0),
-                  child: TextFormField(
-                    key: _titleKey,
-                    onSaved: (newValue) =>
-                        widget.game.name = newValue ?? widget.game.name,
-                    initialValue: widget.game.name,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                      labelText: "Title",
-                    ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          key: _titleKey,
+                          onSaved: (newValue) =>
+                              widget.game.name = newValue ?? widget.game.name,
+                          initialValue: widget.game.name,
+                          decoration: const InputDecoration(
+                            border: OutlineInputBorder(),
+                            labelText: "Title",
+                          ),
+                        ),
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8.0),
+                        child: OutlinedButton(
+                          onPressed: () {
+                            var vndbInstance = (_vndbidKey.currentState?.value ?? "") != ""
+                              ? VNDB(_vndbidKey.currentState!.value)
+                              : VNDB.fromTitle(_titleKey.currentState?.value ?? widget.game.name);
+                            vndbInstance.getInfo().then((vndb) {
+                              _titleKey.currentState!.didChange(vndb.title);
+                            });
+                          },
+                          child: const Text("Get title from VNDB")
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Padding(
@@ -1005,20 +1025,6 @@ class GameConfigState extends State<GameConfig> {
                               },
                             ),
                             const VerticalDivider(),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                              child: OutlinedButton(
-                                onPressed: () {
-                                  var vndbInstance = (_vndbidKey.currentState?.value ?? "") != ""
-                                    ? VNDB(_vndbidKey.currentState!.value)
-                                    : VNDB.fromTitle(_titleKey.currentState?.value ?? widget.game.name);
-                                  vndbInstance.getInfo().then((vndb) {
-                                    _titleKey.currentState!.didChange(vndb.title);
-                                  });
-                                },
-                                child: const Text("Get title from VNDB")
-                              ),
-                            ),
                             Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 8.0),
                               child: OutlinedButton(

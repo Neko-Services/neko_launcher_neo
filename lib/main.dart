@@ -48,7 +48,7 @@ void main() async {
   }
   WidgetsFlutterBinding.ensureInitialized();
   Fimber.i("Setting minimum window size.");
-  setWindowMinSize(const Size(1100, 620));
+  setWindowMinSize(const Size(920, 600));
   Fimber.i("Initializing Supabase connection.");
   await Supabase.initialize(
       url: "https://byxhhsabmioakiwfrcud.supabase.co",
