@@ -109,11 +109,16 @@ class Game extends ChangeNotifier {
       nsfw = json["nsfw"] ?? false;
       vndbIntegration = json["vndb"] ?? false;
       vndbid = json["vndbid"];
-      if (vndbIntegration && vndb == null) {
-        if (vndbid != null && vndbid != "") {
-          vndb = VNDB(vndbid);
+      if (vndbIntegration) {
+        if (vndb == null) {
+          if (vndbid != null && vndbid != "") {
+            vndb = VNDB(vndbid);
+          } else {
+            vndb = VNDB.fromTitle(name);
+          }
         } else {
-          vndb = VNDB.fromTitle(name);
+          vndb!.title = name;
+          vndb!.id = vndbid;
         }
       }
       if (!lite) {
@@ -1000,7 +1005,7 @@ class GameConfigState extends State<GameConfig> {
                               },
                             ),
                             const VerticalDivider(),
-                            ElevatedButton(
+                            OutlinedButton(
                               onPressed: () {
                                 var vndbInstance = (_vndbidKey.currentState?.value ?? "") != ""
                                   ? VNDB(_vndbidKey.currentState!.value)
