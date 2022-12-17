@@ -40,9 +40,9 @@ class Game extends ChangeNotifier {
 
   final datePattern = DateFormat("yyyy-MM-dd");
 
-  Game(this.path) {
+  Game(this.path, {bool lazy = false}) {
     Fimber.i("Creating game object from JSON $path");
-    update();
+    update(lite: lazy);
   }
 
   Game.fromExe(this.exec) {
@@ -93,7 +93,7 @@ class Game extends ChangeNotifier {
     activity = newActivity;
   }
 
-  void update() {
+  void update({bool lite = false}) {
     try {
       var json = jsonDecode(File(path).readAsStringSync());
       name = json["name"] ?? "Untitled game";
@@ -109,7 +109,6 @@ class Game extends ChangeNotifier {
       nsfw = json["nsfw"] ?? false;
       vndbIntegration = json["vndb"] ?? false;
       vndbid = json["vndbid"];
-      //TODO: Optimize loading VNDB data
       if (vndbIntegration && vndb == null) {
         if (vndbid != null && vndbid != "") {
           vndb = VNDB(vndbid);
@@ -117,7 +116,9 @@ class Game extends ChangeNotifier {
           vndb = VNDB.fromTitle(name);
         }
       }
-      vndb?.getInfo();
+      if (!lite) {
+        vndb?.getInfo();
+      }
       resolveImageProvider();
       updateActivity();
       notifyListeners();
@@ -1191,7 +1192,7 @@ class GameListState extends State<GameList> {
       gamesFolder.listSync().forEach((f) {
         if (f is File) {
           try {
-            games.add(Game(f.path));
+            games.add(Game(f.path, lazy: true));
           } on UpdateException catch (e) {
             Fimber.e("Failed to load ${f.path}: ${e.rootCause}");
           }
