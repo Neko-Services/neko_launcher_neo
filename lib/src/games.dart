@@ -681,21 +681,26 @@ class GameDetailsState extends State<GameDetails> {
                       Expanded(
                         child: NekoCard(
                           title: "Tags",
-                          body: Wrap(
-                            children: widget.game.tags.map((tag) {
-                              return Padding(
-                                padding: const EdgeInsets.all(8.0),
-                                child: Chip(
-                                  onDeleted: () {
-                                    widget.game.tags.remove(tag);
-                                    widget.game.save();
-                                  },
-                                  label: Text(tag),
-                                  backgroundColor:
-                                      Theme.of(context).colorScheme.surface,
-                                ),
-                              );
-                            }).toList(),
+                          body: ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 128),
+                            child: SingleChildScrollView(
+                              child: Wrap(
+                                children: widget.game.tags.map((tag) {
+                                  return Padding(
+                                    padding: const EdgeInsets.all(8.0),
+                                    child: Chip(
+                                      onDeleted: () {
+                                        widget.game.tags.remove(tag);
+                                        widget.game.save();
+                                      },
+                                      label: Text(tag),
+                                      backgroundColor:
+                                          Theme.of(context).colorScheme.surface,
+                                    ),
+                                  );
+                                }).toList(),
+                              ),
+                            ),
                           ),
                           actions: Row(
                             children: [
