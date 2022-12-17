@@ -1,6 +1,6 @@
-import 'dart:collection';
 import 'dart:convert';
 
+import 'package:fimber_io/fimber_io.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:neko_launcher_neo/src/stylesheet.dart';
@@ -29,8 +29,10 @@ class VNDB extends ChangeNotifier {
       "reverse": true
     };
     if (id == null || id == "") {
+      Fimber.i("Getting VNDB info of $title");
       query["filters"] = ["search", "=", title];
     } else {
+      Fimber.i("Getting VNDB info of $id");
       query["filters"] = ["id", "=", "$id"];
     }
 
@@ -65,6 +67,7 @@ class VNDB extends ChangeNotifier {
       released ??= DateTime.parse(response["results"][0]["released"]);
       description ??= response["results"][0]["description"];
       length ??= response["results"][0]["length_minutes"] / 60.0;
+      Fimber.i("Successfully processed response from VNDB");
       notifyListeners();
       return this;
     });
@@ -100,6 +103,7 @@ class VNDBCardState extends State<VNDBCard> {
 
   @override
   Widget build(BuildContext context) {
+    Fimber.i("(VNDB: ${widget.vndb.id}) Building VNDBCard widget.");
     return NekoCard(
       title: "VNDB",
       body: Expanded(
