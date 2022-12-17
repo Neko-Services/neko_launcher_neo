@@ -15,6 +15,7 @@ class VNDB extends ChangeNotifier {
   double? rating;
   DateTime? released;
   String? description;
+  double? length;
 
   VNDB(this.id);
 
@@ -22,7 +23,7 @@ class VNDB extends ChangeNotifier {
 
   Future<VNDB> getInfo() async {
     Map<String, dynamic> query = {
-      "fields": "id, title, titles{title, latin, official, main, lang}, released, rating, description",
+      "fields": "id, title, titles{title, latin, official, main, lang}, released, rating, description, length_minutes",
       "results": 1,
       "sort": "popularity",
       "reverse": true
@@ -63,6 +64,7 @@ class VNDB extends ChangeNotifier {
       rating ??= response["results"][0]["rating"] + 0.0;
       released ??= DateTime.parse(response["results"][0]["released"]);
       description ??= response["results"][0]["description"];
+      length ??= response["results"][0]["length_minutes"] / 60.0;
       notifyListeners();
       return this;
     });
@@ -104,19 +106,22 @@ class VNDBCardState extends State<VNDBCard> {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            DecoratedBox(
-              decoration: BoxDecoration(
-                color: widget.vndb.rating != null ? Color.lerp(Colors.red, Colors.green, (widget.vndb.rating ?? 0) / 100) : Colors.grey,
-                borderRadius: BorderRadius.circular(8)
-              ),
-              child: SizedBox.square(
-                dimension: 80,
-                child: Center(
-                  child: Text(
-                    "${widget.vndb.rating?.round() ?? '?'}",
-                    style: const TextStyle(
-                      fontSize: 30,
-                      fontWeight: FontWeight.bold
+            Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: widget.vndb.rating != null ? Color.lerp(Colors.red, Colors.green, ((widget.vndb.rating ?? 0) * 1.6 - 40) / 100) : Colors.grey,
+                  borderRadius: BorderRadius.circular(8)
+                ),
+                child: SizedBox.square(
+                  dimension: 80,
+                  child: Center(
+                    child: Text(
+                      "${widget.vndb.rating?.round() ?? '?'}",
+                      style: const TextStyle(
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold
+                      ),
                     ),
                   ),
                 ),
@@ -124,7 +129,7 @@ class VNDBCardState extends State<VNDBCard> {
             ),
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.all(8.0),
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.start,
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -132,7 +137,7 @@ class VNDBCardState extends State<VNDBCard> {
                     Text(
                       widget.vndb.title ?? "???",
                       style: const TextStyle(
-                          fontSize: 20,
+                          fontSize: 24,
                       ),
                       overflow: TextOverflow.ellipsis,
                       softWrap: false,
@@ -140,9 +145,17 @@ class VNDBCardState extends State<VNDBCard> {
                     Text(
                       "(${widget.vndb.released?.year ?? 'Unknown release'})",
                       style: const TextStyle(
-                            fontSize: 20,
+                            fontSize: 16,
                       ),
-                    )
+                    ),
+                    Text(
+                      "Average play time: ${widget.vndb.length?.toStringAsFixed(1) ?? '?'} hours",
+                      style: const TextStyle(
+                          fontSize: 16,
+                      ),
+                      overflow: TextOverflow.fade,
+                      softWrap: false,
+                    ),
                   ],
                 ),
               ),
