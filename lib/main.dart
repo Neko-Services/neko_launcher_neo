@@ -10,6 +10,7 @@ import 'package:neko_launcher_neo/src/stylesheet.dart';
 import 'package:neko_launcher_neo/src/settings.dart';
 import 'package:neko_launcher_neo/src/social.dart';
 import 'package:neko_launcher_neo/src/daemon.dart';
+import 'package:window_size/window_size.dart';
 
 final navigatorKey = GlobalKey<NavigatorState>();
 final listKey = GlobalKey<GameListState>();
@@ -46,8 +47,8 @@ void main() async {
     gamesFolder.createSync(recursive: true);
   }
   WidgetsFlutterBinding.ensureInitialized();
-  Fimber.i("Setting window title.");
   Fimber.i("Setting minimum window size.");
+  setWindowMinSize(const Size(1100, 620));
   Fimber.i("Initializing Supabase connection.");
   await Supabase.initialize(
       url: "https://byxhhsabmioakiwfrcud.supabase.co",
