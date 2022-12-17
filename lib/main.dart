@@ -499,11 +499,91 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           labelText: "Home screen background tags",
                           hintText: "Gelbooru tags",
                           helperText:
-                              "The home screen background finds images using Gelbooru. If you don't know what you're doing, leave as is or refer to their wiki (howto:search, howto:cheatsheet)."),
+                              "The home screen background finds images using Gelbooru. If you don't know what you're doing, leave as is or refer to their wiki (howto:search, howto:cheatsheet).",
+                          helperStyle: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
+                            fontWeight: FontWeight.w500
+                          ),
+                        ),
                       initialValue: launcherConfig.gelbooruTags,
                       onSaved: (value) {
                         launcherConfig.gelbooruTags =
                             value ?? launcherConfig.gelbooruTags;
+                      },
+                    ),
+                    FormField(
+                      initialValue: launcherConfig.vndbTitles,
+                      onSaved: (String? value) {
+                        launcherConfig.vndbTitles = value ?? launcherConfig.vndbTitles;
+                      },
+                      builder: (FormFieldState<String> field) {
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Text("Preferred VNDB titles: "),
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                          child: Radio<String>(
+                                            value: "default",
+                                            groupValue: field.value,
+                                            onChanged: (String? newValue) => field.didChange(newValue)
+                                          ),
+                                        ),
+                                        const Text("Default")
+                                      ],
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                          child: Radio<String>(
+                                            value: "english",
+                                            groupValue: field.value,
+                                            onChanged: (String? newValue) => field.didChange(newValue)
+                                          ),
+                                        ),
+                                        const Text("English")
+                                      ],
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                          child: Radio<String>(
+                                            value: "original",
+                                            groupValue: field.value,
+                                            onChanged: (String? newValue) => field.didChange(newValue)
+                                          ),
+                                        ),
+                                        const Text("Original")
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const Text(
+                                "By default the launcher will use romanized original titles where possible.",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                  fontWeight: FontWeight.w500
+                                ),
+                              )
+                            ],
+                          ),
+                        );
                       },
                     ),
                     SizedBox.fromSize(size: const Size(0, 50)),
