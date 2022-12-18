@@ -14,9 +14,9 @@ A game launcher with focus on visual novels, but not only.
     - Total play time
     - Last month daily activity
 - [x] Filter and search your game library
-- [ ] VNDB integration
+- [x] VNDB integration
     - User ratings of games you play
-    - Synchronize tags and descriptions
+    - Synchronize titles and descriptions
 - [x] Launch games through Locale Emulator
 - [x] Customize your experience
     - Blur or hide NSFW games
