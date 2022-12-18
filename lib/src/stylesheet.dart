@@ -182,7 +182,7 @@ class NekoCard extends Card {
               padding: Styles.cardPadding,
               child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     title != null
                         ? Text(title, style: Styles.cardHeader)
