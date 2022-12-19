@@ -16,6 +16,7 @@ class VNDB extends ChangeNotifier {
   DateTime? released;
   String? description;
   double? length;
+  String displayTitle = "???";
 
   VNDB(this.id);
 
@@ -33,7 +34,7 @@ class VNDB extends ChangeNotifier {
       query["filters"] = ["search", "=", title];
     } else {
       Fimber.i("Getting VNDB info of $id");
-      query["filters"] = ["id", "=", "$id"];
+      query["filters"] = ["id", "=", id];
     }
 
     await http.post(
@@ -55,13 +56,13 @@ class VNDB extends ChangeNotifier {
       id ??= response["results"][0]["id"];
       switch (launcherConfig.vndbTitles) {
         case "original":
-          title = originalTitle ?? defaultTitle;
+          displayTitle = originalTitle ?? defaultTitle;
           break;
         case "english":
-          title = englishTitle ?? defaultTitle;
+          displayTitle = englishTitle ?? defaultTitle;
           break;
         default:
-          title = defaultTitle;
+          displayTitle = defaultTitle;
       }
       rating ??= response["results"][0]["rating"] + 0.0;
       released ??= DateTime.parse(response["results"][0]["released"]);
@@ -139,7 +140,7 @@ class VNDBCardState extends State<VNDBCard> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      widget.vndb.title ?? "???",
+                      widget.vndb.displayTitle,
                       style: const TextStyle(
                           fontSize: 24,
                       ),

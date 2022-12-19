@@ -117,9 +117,7 @@ class Game extends ChangeNotifier {
             vndb = VNDB.fromTitle(name);
           }
         } else {
-          if (vndbid == null || vndbid == "") {
-            vndb!.title = name;
-          }
+          vndb!.title = name;
           vndb!.id = vndbid;
         }
       }
