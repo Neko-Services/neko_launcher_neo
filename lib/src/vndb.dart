@@ -53,7 +53,7 @@ class VNDB extends ChangeNotifier {
       } catch (e) {
         //
       }
-      id ??= response["results"][0]["id"];
+      id = response["results"][0]["id"];
       switch (launcherConfig.vndbTitles) {
         case "original":
           displayTitle = originalTitle ?? defaultTitle;

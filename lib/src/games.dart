@@ -870,7 +870,7 @@ class GameConfigState extends State<GameConfig> {
                               ? VNDB(_vndbidKey.currentState!.value)
                               : VNDB.fromTitle(_titleKey.currentState?.value ?? widget.game.name);
                             vndbInstance.getInfo().then((vndb) {
-                              _titleKey.currentState!.didChange(vndb.title);
+                              _titleKey.currentState!.didChange(vndb.displayTitle);
                             });
                           },
                           child: const Text("Get title from VNDB")
