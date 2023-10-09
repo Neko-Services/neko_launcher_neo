@@ -315,6 +315,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _gelKey = GlobalKey<FormFieldState>();
   String _logsInfo = "Calculating...";
   bool _pendingChanges = false;
+  
+  static const Map<String, String> titleHelperText = {
+    "default": "The launcher will use romanized Japanese titles where possible.",
+    "english": "The launcher will use translated English titles where possible.",
+    "original": "The launcher will use original Japanese titles where possible."
+  };
 
   void highlightSave() {
     setState(() {
@@ -540,7 +546,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                             onChanged: (String? newValue) => field.didChange(newValue)
                                           ),
                                         ),
-                                        const Text("Default")
+                                        const Text("Romanized")
                                       ],
                                     ),
                                   ),
@@ -582,9 +588,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   )
                                 ],
                               ),
-                              const Text(
-                                "By default the launcher will use romanized original titles where possible.",
-                                style: TextStyle(
+                              Text(
+                                titleHelperText[field.value] ?? "",
+                                style: const TextStyle(
                                   fontSize: 12,
                                   color: Colors.grey,
                                   fontWeight: FontWeight.w500
