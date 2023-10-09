@@ -29,7 +29,7 @@ final launcherConfig = LauncherConfig(Platform.isLinux
     : File("${Platform.environment["APPDATA"]!}\\neko-launcher\\config.json"));
 
 //! Update before publishing
-const launcherVersion = "v0.4.0-alpha";
+const launcherVersion = "v0.4.1-alpha";
 
 late final Supabase supabase;
 final GameDaemon gameDaemon = GameDaemon();
@@ -315,7 +315,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _gelKey = GlobalKey<FormFieldState>();
   String _logsInfo = "Calculating...";
   bool _pendingChanges = false;
-  
+
   static const Map<String, String> titleHelperText = {
     "default": "The launcher will use romanized Japanese titles where possible.",
     "english": "The launcher will use translated English titles where possible.",
@@ -534,54 +534,57 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               Row(
                                 children: [
                                   const Text("Preferred VNDB titles: "),
-                                  Expanded(
-                                    child: Row(
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                          child: Radio<String>(
-                                            value: "default",
-                                            groupValue: field.value,
-                                            activeColor: Colors.pink,
-                                            onChanged: (String? newValue) => field.didChange(newValue)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                      child: Row(
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                            child: Radio<String>(
+                                              value: "default",
+                                              groupValue: field.value,
+                                              activeColor: Colors.pink,
+                                              onChanged: (String? newValue) => field.didChange(newValue)
+                                            ),
                                           ),
-                                        ),
-                                        const Text("Romanized")
-                                      ],
+                                          const Text("Romanized")
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  Expanded(
-                                    child: Row(
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                          child: Radio<String>(
-                                            value: "english",
-                                            groupValue: field.value,
-                                            activeColor: Colors.pink,
-                                            onChanged: (String? newValue) => field.didChange(newValue)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                      child: Row(
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                            child: Radio<String>(
+                                              value: "english",
+                                              groupValue: field.value,
+                                              activeColor: Colors.pink,
+                                              onChanged: (String? newValue) => field.didChange(newValue)
+                                            ),
                                           ),
-                                        ),
-                                        const Text("English")
-                                      ],
+                                          const Text("English")
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                  Expanded(
-                                    child: Row(
-                                      children: [
-                                        Padding(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                          child: Radio<String>(
-                                            value: "original",
-                                            groupValue: field.value,
-                                            activeColor: Colors.pink,
-                                            onChanged: (String? newValue) => field.didChange(newValue)
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                      child: Row(
+                                        children: [
+                                          Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                            child: Radio<String>(
+                                              value: "original",
+                                              groupValue: field.value,
+                                              activeColor: Colors.pink,
+                                              onChanged: (String? newValue) => field.didChange(newValue)
+                                            ),
                                           ),
-                                        ),
-                                        const Text("Original")
-                                      ],
+                                          const Text("Original")
+                                        ],
+                                      ),
                                     ),
-                                  ),
                                   const Expanded(
                                     flex: 6,
                                     child: SizedBox(),
