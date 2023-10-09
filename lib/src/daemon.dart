@@ -50,6 +50,7 @@ class GameDaemon extends ChangeNotifier {
       } else {
         game.activity[activityKey] = diff.inSeconds;
       }
+      notifyListeners();
       game.save();
     });
   }
