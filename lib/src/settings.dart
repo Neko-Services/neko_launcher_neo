@@ -9,7 +9,10 @@ const defaultConfig = {
   "blurNsfw": false,
   "hideNsfw": false,
   "gelbooruTags": "cat_ears -rating:questionable -rating:explicit -huge_filesize width:>=1080 score:>=30",
-  "vndbTitles": "default"
+  "vndbTitles": "default",
+  "searchTitles": true,
+  "searchTags": false,
+  "searchDescs": false
 };
 
 class LauncherConfig extends ChangeNotifier {
@@ -19,6 +22,9 @@ class LauncherConfig extends ChangeNotifier {
   late bool hideNsfw;
   late String gelbooruTags;
   late String vndbTitles;
+  late bool searchTitles;
+  late bool searchTags;
+  late bool searchDescs;
 
   get defaults => defaultConfig;
 
@@ -36,6 +42,9 @@ class LauncherConfig extends ChangeNotifier {
     hideNsfw = config["hideNsfw"] ?? defaultConfig["hideNsfw"];
     gelbooruTags = config["gelbooruTags"] ?? defaultConfig["gelbooruTags"];
     vndbTitles = config["vndbTitles"] ?? defaultConfig["vndbTitles"];
+    searchTitles = config["searchTitles"] ?? defaultConfig["searchTitles"];
+    searchTags = config["searchTags"] ?? defaultConfig["searchTags"];
+    searchDescs = config["searchDescs"] ?? defaultConfig["searchDescs"];
   }
 
   void save() {
@@ -44,7 +53,10 @@ class LauncherConfig extends ChangeNotifier {
       "blurNsfw": blurNsfw,
       "hideNsfw": hideNsfw,
       "gelbooruTags": gelbooruTags,
-      "vndbTitles": vndbTitles
+      "vndbTitles": vndbTitles,
+      "searchTitles": searchTitles,
+      "searchTags": searchTags,
+      "searchDescs": searchDescs
     };
     Fimber.i("Saving launcher config changes to file.");
     configFile.writeAsStringSync(jsonEncode(config));

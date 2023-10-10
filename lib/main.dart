@@ -535,51 +535,42 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 children: [
                                   const Text("Preferred VNDB titles: "),
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                      padding: const EdgeInsets.all(8.0),
                                       child: Row(
                                         children: [
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                            child: Radio<String>(
-                                              value: "default",
-                                              groupValue: field.value,
-                                              activeColor: Colors.pink,
-                                              onChanged: (String? newValue) => field.didChange(newValue)
-                                            ),
+                                          Radio<String>(
+                                            value: "default",
+                                            groupValue: field.value,
+                                            activeColor: Colors.pink,
+                                            onChanged: (String? newValue) => field.didChange(newValue)
                                           ),
                                           const Text("Romanized")
                                         ],
                                       ),
                                     ),
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                      padding: const EdgeInsets.all(8.0),
                                       child: Row(
                                         children: [
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                            child: Radio<String>(
-                                              value: "english",
-                                              groupValue: field.value,
-                                              activeColor: Colors.pink,
-                                              onChanged: (String? newValue) => field.didChange(newValue)
-                                            ),
+                                          Radio<String>(
+                                            value: "english",
+                                            groupValue: field.value,
+                                            activeColor: Colors.pink,
+                                            onChanged: (String? newValue) => field.didChange(newValue)
                                           ),
                                           const Text("English")
                                         ],
                                       ),
                                     ),
                                     Padding(
-                                      padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                      padding: const EdgeInsets.all(8.0),
                                       child: Row(
                                         children: [
-                                          Padding(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                                            child: Radio<String>(
-                                              value: "original",
-                                              groupValue: field.value,
-                                              activeColor: Colors.pink,
-                                              onChanged: (String? newValue) => field.didChange(newValue)
-                                            ),
+                                          Radio<String>(
+                                            value: "original",
+                                            groupValue: field.value,
+                                            activeColor: Colors.pink,
+                                            onChanged: (String? newValue) => field.didChange(newValue)
                                           ),
                                           const Text("Original")
                                         ],
@@ -603,6 +594,68 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           ),
                         );
                       },
+                    ),
+                    Row(
+                      children: [
+                        const Text("Default search includes: "),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: FormField(
+                            initialValue: launcherConfig.searchTitles,
+                            onSaved: (bool? newValue) => launcherConfig.searchTitles =
+                                newValue ?? launcherConfig.searchTitles,
+                            builder: (FormFieldState<bool> field) {
+                              return Row(
+                                children: [
+                                  Checkbox(
+                                    value: field.value ?? false,
+                                    onChanged: (bool? value) => field.didChange(value),
+                                  ),
+                                  const Text("Titles"),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: FormField(
+                            initialValue: launcherConfig.searchTags,
+                            onSaved: (bool? newValue) => launcherConfig.searchTags =
+                                newValue ?? launcherConfig.searchTags,
+                            builder: (FormFieldState<bool> field) {
+                              return Row(
+                                children: [
+                                  Checkbox(
+                                    value: field.value ?? false,
+                                    onChanged: (bool? value) => field.didChange(value),
+                                  ),
+                                  const Text("Tags"),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: FormField(
+                            initialValue: launcherConfig.searchDescs,
+                            onSaved: (bool? newValue) => launcherConfig.searchDescs =
+                                newValue ?? launcherConfig.searchDescs,
+                            builder: (FormFieldState<bool> field) {
+                              return Row(
+                                children: [
+                                  Checkbox(
+                                    value: field.value ?? false,
+                                    onChanged: (bool? value) => field.didChange(value),
+                                  ),
+                                  const Text("Descriptions"),
+                                ],
+                              );
+                            },
+                          ),
+                        ),
+                      ],
                     ),
                     SizedBox.fromSize(size: const Size(0, 50)),
                     RichText(

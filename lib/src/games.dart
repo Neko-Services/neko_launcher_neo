@@ -1129,6 +1129,7 @@ class GameListState extends State<GameList> {
   void search(String query) {
     var words = query.toLowerCase().split(RegExp(r' (?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)'));
     var fav = false;
+    var title = "";
     var tags = [];
     var desc = "";
     var nsfw = false;
@@ -1146,9 +1147,17 @@ class GameListState extends State<GameList> {
         keywords.add(word);
         tags.addAll(word.split(":")[1].split(","));
       }
+      if (word.startsWith("!title:") || word.startsWith("!name:") || word.startsWith("!n:")) {
+        keywords.add(word);
+        if (title.isEmpty) {
+          title = word.split(":")[1].replaceAll('"', "");
+        }
+      }
       if (word.startsWith("!desc:") || word.startsWith("!description:") || word.startsWith("!d:")) {
         keywords.add(word);
-        desc = word.split(":")[1].replaceAll('"', "");
+        if (desc.isEmpty) {
+          desc = word.split(":")[1].replaceAll('"', "");
+        }
       }
       if (word == "!nsfw") {
         keywords.add(word);
@@ -1191,7 +1200,16 @@ class GameListState extends State<GameList> {
       }
     }
     words.removeWhere((word) => keywords.contains(word));
-    var newView = games.where((game) => game.name.toLowerCase().contains(words.join(" "))).toList();
+    var newView = games.where((game) 
+      => (launcherConfig.searchTitles ? game.name.toLowerCase().contains(words.join(" ")) : false)
+      || (launcherConfig.searchTags ? game.tags.map((e) => e.toString().toLowerCase()).contains(words.join(" ")) : false)
+      || (launcherConfig.searchDescs ? game.desc.toLowerCase().contains(words.join(" ")) : false)
+      || (!launcherConfig.searchTitles && !launcherConfig.searchTags && !launcherConfig.searchDescs)
+    ).toList();
+
+    if (title.isNotEmpty) {
+      newView = newView.where((game) => game.name.toLowerCase().contains(title.toLowerCase())).toList();
+    }
     if (tags.isNotEmpty) {
       for (String tag in tags) {
         newView = newView.where((game) => game.tags.map((e) => e.toString().toLowerCase()).contains(tag.replaceAll('"', ""))).toList();
