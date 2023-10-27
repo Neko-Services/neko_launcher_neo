@@ -1205,6 +1205,7 @@ class GameListState extends State<GameList> {
       || (launcherConfig.searchTags ? game.tags.map((e) => e.toString().toLowerCase()).contains(words.join(" ")) : false)
       || (launcherConfig.searchDescs ? game.desc.toLowerCase().contains(words.join(" ")) : false)
       || (!launcherConfig.searchTitles && !launcherConfig.searchTags && !launcherConfig.searchDescs)
+      || (!launcherConfig.searchTitles && query.isEmpty)
     ).toList();
 
     if (title.isNotEmpty) {
