@@ -1,8 +1,9 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:fimber_io/fimber_io.dart';
+import 'package:pocketbase/pocketbase.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:neko_launcher_neo/src/games.dart';
@@ -29,9 +30,9 @@ final launcherConfig = LauncherConfig(Platform.isLinux
     : File("${Platform.environment["APPDATA"]!}\\neko-launcher\\config.json"));
 
 //! Update before publishing
-const launcherVersion = "v0.4.1-alpha";
+const launcherVersion = "v0.5.0-alpha";
 
-late final Supabase supabase;
+late final PocketBase pb;
 final GameDaemon gameDaemon = GameDaemon();
 NekoUser? userProfile;
 
@@ -41,6 +42,13 @@ void main() async {
   }
   Fimber.plantTree(TimedRollingFileTree(
       filenamePrefix: "${logsFolder.path}${Platform.pathSeparator}log_"));
+  Fimber.i("Initializing PocketBase connection.");
+  final prefs = await SharedPreferences.getInstance();
+  final store = AsyncAuthStore(
+    save: (String data) async => prefs.setString("pb_auth", data),
+    initial: prefs.getString("pb_auth")
+  );
+  pb = PocketBase("https://neko.nil.services/", authStore: store);
   Fimber.i("Starting Neko Launcher...");
   Fimber.i("Ensuring game folder exists at ${gamesFolder.absolute.path}.");
   if (!gamesFolder.existsSync()) {
@@ -49,23 +57,11 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   Fimber.i("Setting minimum window size.");
   setWindowMinSize(const Size(920, 600));
-  Fimber.i("Initializing Supabase connection.");
-  await Supabase.initialize(
-      url: "https://byxhhsabmioakiwfrcud.supabase.co",
-      anonKey:
-          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJvbGUiOiJhbm9uIiwiaWF0IjoxNjQyMjA1NDE5LCJleHAiOjE5NTc3ODE0MTl9.DLp4O4UnN0-2JkjCArdCXt87AYd4dvaRbf_mPRBOLIo");
-  supabase = Supabase.instance;
   Fimber.i("Starting Neko Launcher Neo.");
-  if (supabase.client.auth.currentSession != null) {
+  if (pb.authStore.isValid) {
     Fimber.i("User is logged in.");
-    supabase.client
-        .from("profiles")
-        .select()
-        .eq("id", supabase.client.auth.currentUser!.id)
-        .execute()
-        .then((response) {
-      userProfile = NekoUser.fromRow(response.data[0]);
-    });
+    final profileData = await pb.collection("profiles").getFirstListItem("user.id = '${pb.authStore.model.getStringValue('id')}'");
+    userProfile = NekoUser.fromRow(profileData);
   } else {
     Fimber.i("User is not logged in.");
   }
@@ -230,7 +226,7 @@ class Home extends StatelessWidget {
                     splashRadius: Styles.splash,
                     onPressed: () {
                           listKey.currentState!.enableHome();
-                          if (supabase.client.auth.currentUser != null)
+                          if (pb.authStore.isValid)
                             {
                               navigatorKey.currentState!
                                   .pushReplacementNamed("/social");

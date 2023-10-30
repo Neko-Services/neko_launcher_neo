@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:charts_flutter/flutter.dart' as charts;
+import 'package:community_charts_flutter/community_charts_flutter.dart' as charts;
 import 'package:neko_launcher_neo/src/vndb.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -544,7 +544,7 @@ class GameDetailsState extends State<GameDetails> {
         Scaffold(
             floatingActionButton: FloatingActionButton(
               onPressed: () => {
-                setState(() => {widget.game.favouriteToggle()}),
+                setState(() => widget.game.favouriteToggle()),
                 ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                   behavior: SnackBarBehavior.floating,
                   width: 600,
@@ -557,7 +557,7 @@ class GameDetailsState extends State<GameDetails> {
                   action: SnackBarAction(
                       label: "Undo",
                       onPressed: () => {
-                            setState(() => {widget.game.favouriteToggle()})
+                            setState(() => widget.game.favouriteToggle())
                           }),
                 ))
               },

@@ -4,10 +4,11 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:fimber_io/fimber_io.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:pocketbase/pocketbase.dart';
 
 import 'package:neko_launcher_neo/main.dart';
 import 'package:neko_launcher_neo/src/stylesheet.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 enum ActivityType { offline, online, game }
 
@@ -18,7 +19,6 @@ class NekoUser extends ChangeNotifier {
   String? activity;
   DateTime? lastActivity;
   String avatar;
-  late final RealtimeSubscription subscription;
 
   NekoUser(
       {required this.uid,
@@ -29,57 +29,23 @@ class NekoUser extends ChangeNotifier {
       this.avatar =
           "https://byxhhsabmioakiwfrcud.supabase.in/storage/v1/object/public/avatars/neko64.png"}) {
     Fimber.i("Creating $name's profile. (UID: $uid)");
-    subscription = supabase.client
-        .from("profiles:id=eq.$uid")
-        .on(SupabaseEventTypes.update, (data) {
-      stdout.writeln("Updating profile $uid.");
-      Fimber.i("(User: $uid) Updating profile.");
-      name = data.newRecord!["username"];
-      activityType =
-          ActivityType.values[data.newRecord!["activity_type"] as int];
-      activity = data.newRecord!["activity_details"];
-      lastActivity = data.newRecord!["activity_timestamp"] != null
-          ? DateTime.parse(data.newRecord!["activity_timestamp"])
-          : null;
-      avatar = data.newRecord!["avatar_url"] ?? "https://byxhhsabmioakiwfrcud.supabase.in/storage/v1/object/public/avatars/neko64.png";
-      notifyListeners();
-    }).subscribe();
-    // subscription.onError((error) {
-    //   Fimber.e("(User: $uid) Profile subscription error: $error.");
-    //   subscription.rejoinUntilConnected();
-    // });
+    //TODO: Profile subscription
   }
 
-  factory NekoUser.fromRow(Map<String, dynamic> row) {
+  factory NekoUser.fromRow(RecordModel row) {
     return NekoUser(
-      uid: row["id"],
-      name: row["username"],
-      activityType: ActivityType.values[row["activity_type"] as int],
-      activity: row["activity_details"] ?? "",
-      lastActivity: row["activity_timestamp"] != null
-          ? DateTime.parse(row["activity_timestamp"])
-          : null,
-      avatar: row["avatar_url"],
+      uid: row.getStringValue("id"),
+      name: row.getStringValue("name"),
+      activityType: ActivityType.values[row.getIntValue("activity_type")],
+      activity: row.getStringValue("activity_details"),
+      lastActivity: row.getDataValue<DateTime>("activity_timestamp"),
+      avatar: row.getStringValue("avatar"),
     );
   }
 
   void updateActivity(ActivityType type, {String? details}) {
     stdout.writeln("Updating activity");
-    supabase.client
-        .from("profiles")
-        .update({
-          "activity_type": type.index,
-          "activity_details": details,
-          "activity_timestamp": DateTime.now().toUtc().toIso8601String()
-        })
-        .eq("id", uid)
-        .execute()
-        .then((response) {
-          if (response.hasError) {
-            Fimber.e("Error updating activity: ${response.error}");
-          }
-          stdout.writeln("Executed update");
-        });
+    //TODO: Implement activity update
   }
 
   Widget activityText() {
@@ -130,16 +96,11 @@ class _SocialState extends State<Social> {
 
   Future<void> _load() async {
     try {
-      await supabase.client
-          .from("profiles")
-          .select()
-          .eq("id", supabase.client.auth.currentUser!.id)
-          .execute()
-          .then((response) {
-        userProfile = NekoUser.fromRow(response.data[0]);
-      });
+      final response = await pb.collection("profiles").getFirstListItem("user.id = '${pb.authStore.model.getStringValue('id')}'");
+      userProfile = NekoUser.fromRow(response);
     } catch (e) {
       Fimber.e("Error loading user profile: $e");
+      if (!context.mounted) return;
       Navigator.pushReplacementNamed(context, "/error", arguments: e);
     }
   }
@@ -183,7 +144,7 @@ class _SocialState extends State<Social> {
                   tooltip: "Log out",
                   icon: const Icon(Icons.exit_to_app),
                   onPressed: () {
-                    supabase.client.auth.signOut();
+                    pb.authStore.clear();
                     userProfile!.removeListener(refreshState);
                     userProfile = null;
                     Navigator.pushReplacementNamed(
@@ -222,25 +183,10 @@ class _SocialState extends State<Social> {
                                       type: FileType.image,
                                     )
                                         .then((result) {
-                                      //* The image must be under 2MB in size
+                                      //* The image must be under 5MB in size
                                       if (result != null &&
-                                          result.files.single.size < 2000000) {
-                                        supabase.client.storage
-                                            .from("avatars")
-                                            .upload(
-                                              "${userProfile!.uid}-${result.files.single.name}",
-                                              File(result.files.single.path!),
-                                            )
-                                            .then((response) {
-                                          supabase.client
-                                              .from("profiles")
-                                              .update({
-                                                "avatar_url":
-                                                    "https://byxhhsabmioakiwfrcud.supabase.in/storage/v1/object/public/${response.data}",
-                                              })
-                                              .eq("id", userProfile!.uid)
-                                              .execute();
-                                        });
+                                          result.files.single.size < 5000000) {
+                                        //TODO: Implement avatar change
                                       } else {
                                         showDialog(
                                           context: context,
@@ -309,231 +255,195 @@ class _SignInState extends State<SignIn> {
         ),
         body: Padding(
           padding: const EdgeInsets.all(24.0),
-          child: Row(
+          child: Column(
             children: [
-              Expanded(
-                  child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Form(
-                  key: _signinKey,
-                  child: FocusTraversalGroup(
-                    child: Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            "Sign in",
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: TextFormField(
-                            key: _signinEmailKey,
-                            decoration:
-                                const InputDecoration(labelText: "E-mail"),
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: TextFormField(
-                            key: _signinPasswordKey,
-                            decoration:
-                                const InputDecoration(labelText: "Password"),
-                            obscureText: true,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: ElevatedButton(
-                              child: const Text("Sign in"),
-                              onPressed: () async {
-                                if (_signinKey.currentState!.validate()) {
-                                  supabase.client.auth
-                                      .signIn(
-                                          email: _signinEmailKey
-                                              .currentState!.value,
-                                          password: _signinPasswordKey
-                                              .currentState!.value)
-                                      .then((response) {
-                                    if (supabase.client.auth.currentSession !=
-                                        null) {
-                                      supabase.client
-                                          .from("profiles")
-                                          .select()
-                                          .eq(
-                                              "id",
-                                              supabase
-                                                  .client.auth.currentUser!.id)
-                                          .execute()
-                                          .then((response) {
-                                        userProfile =
-                                            NekoUser.fromRow(response.data[0]);
-                                        Navigator.of(context).pop();
-                                      });
-                                    }
-                                  });
-                                }
-                              }),
-                        )
-                      ],
+              ElevatedButton(child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: Image.network(
+                      "https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6cc3c481a15a141738_icon_clyde_white_RGB.png",
+                      height: 16,
+                      isAntiAlias: true,
+                      filterQuality: FilterQuality.medium,
                     ),
                   ),
-                ),
-              )),
-              const VerticalDivider(),
-              Expanded(
-                  child: Padding(
-                padding: const EdgeInsets.all(8.0),
-                child: Form(
-                  key: _signupKey,
-                  child: FocusTraversalGroup(
-                    child: Column(
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: Text(
-                            "Create new account",
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: TextFormField(
-                            key: _signupUsernameKey,
-                            decoration:
-                                const InputDecoration(labelText: "Username"),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return "Please enter your username";
-                              }
-                              if (value.length < 3) {
-                                return "Username must be at least 3 characters";
-                              }
-                              supabase.client
-                                  .from("profiles")
-                                  .select()
-                                  .eq("username", value)
-                                  .execute()
-                                  .then((response) {
-                                if (response.data.length > 0) {
-                                  return "Username already taken";
-                                }
-                              });
-                              return null;
-                            },
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: TextFormField(
-                            key: _signupEmailKey,
-                            decoration:
-                                const InputDecoration(labelText: "E-mail"),
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return "Please enter your e-mail";
-                              }
-                              if (!RegExp(
-                                      r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
-                                  .hasMatch(value)) {
-                                return "Please enter a valid e-mail";
-                              }
-                              return null;
-                            },
-                            autovalidateMode:
-                                AutovalidateMode.onUserInteraction,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: TextFormField(
-                            key: _signupPasswordKey,
-                            decoration:
-                                const InputDecoration(labelText: "Password"),
-                            obscureText: true,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return "Please enter your password";
-                              }
-                              if (value.length < 8) {
-                                return "Password must be at least 8 characters long";
-                              }
-                              if (!value.contains(RegExp(r"[0-9]"))) {
-                                return "Password must contain at least one number";
-                              }
-                              return null;
-                            },
-                            autovalidateMode:
-                                AutovalidateMode.onUserInteraction,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: TextFormField(
-                            key: _signupConfirmKey,
-                            decoration: const InputDecoration(
-                                labelText: "Confirm password"),
-                            obscureText: true,
-                            validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return "Please confirm your password";
-                              }
-                              if (value !=
-                                  _signupPasswordKey.currentState!.value) {
-                                return "Passwords do not match";
-                              }
-                              return null;
-                            },
-                            autovalidateMode:
-                                AutovalidateMode.onUserInteraction,
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(8.0),
-                          child: ElevatedButton(
-                              child: const Text("Sign up"),
-                              onPressed: () {
-                                if (_signinKey.currentState!.validate()) {
-                                  supabase.client.auth
-                                      .signUp(
-                                          _signupEmailKey.currentState!.value,
-                                          _signupPasswordKey
-                                              .currentState!.value)
-                                      .then((value) {
-                                    if (supabase.client.auth.currentSession !=
-                                        null) {
-                                      supabase.client
-                                          .from("profiles")
-                                          .insert({
-                                            "id": supabase
-                                                .client.auth.currentUser!.id,
-                                            "username": _signupUsernameKey
-                                                .currentState!.value
-                                          })
-                                          .execute()
-                                          .then((response) {
-                                            if (response.hasError) {
-                                              Fimber.e(
-                                                  "Error while inserting ${supabase.client.auth.currentUser!.id}'s profile: ${response.error?.message}");
-                                            } else {
-                                              userProfile = NekoUser.fromRow(
-                                                  response.data);
-                                              Navigator.of(context).pop();
-                                            }
-                                          }, onError: (error) {
-                                            stdout.writeln(error);
-                                          });
+                  const Text("Login using Discord"),
+                ],
+              ),
+              onPressed: () {
+                pb.collection("users").authWithOAuth2("discord", (url) {
+                  launchUrl(url);
+                });
+              }
+              ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                      child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Form(
+                      key: _signinKey,
+                      child: FocusTraversalGroup(
+                        child: Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                "Sign in",
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: TextFormField(
+                                key: _signinEmailKey,
+                                decoration:
+                                    const InputDecoration(labelText: "E-mail"),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: TextFormField(
+                                key: _signinPasswordKey,
+                                decoration:
+                                    const InputDecoration(labelText: "Password"),
+                                obscureText: true,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: ElevatedButton(
+                                  child: const Text("Sign in"),
+                                  onPressed: () async {
+                                    if (_signinKey.currentState!.validate()) {
+                                      //TODO: Implement Login
                                     }
-                                  });
-                                }
-                              }),
-                        )
-                      ],
+                                  }),
+                            )
+                          ],
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ))
+                  )),
+                  const VerticalDivider(),
+                  Expanded(
+                      child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Form(
+                      key: _signupKey,
+                      child: FocusTraversalGroup(
+                        child: Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: Text(
+                                "Create new account",
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: TextFormField(
+                                key: _signupUsernameKey,
+                                decoration:
+                                    const InputDecoration(labelText: "Username"),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return "Please enter your username";
+                                  }
+                                  if (value.length < 3) {
+                                    return "Username must be at least 3 characters";
+                                  }
+                                  //TODO: Implement username checking
+                                  return null;
+                                },
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: TextFormField(
+                                key: _signupEmailKey,
+                                decoration:
+                                    const InputDecoration(labelText: "E-mail"),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return "Please enter your e-mail";
+                                  }
+                                  if (!RegExp(
+                                          r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
+                                      .hasMatch(value)) {
+                                    return "Please enter a valid e-mail";
+                                  }
+                                  return null;
+                                },
+                                autovalidateMode:
+                                    AutovalidateMode.onUserInteraction,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: TextFormField(
+                                key: _signupPasswordKey,
+                                decoration:
+                                    const InputDecoration(labelText: "Password"),
+                                obscureText: true,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return "Please enter your password";
+                                  }
+                                  if (value.length < 8) {
+                                    return "Password must be at least 8 characters long";
+                                  }
+                                  if (!value.contains(RegExp(r"[0-9]"))) {
+                                    return "Password must contain at least one number";
+                                  }
+                                  return null;
+                                },
+                                autovalidateMode:
+                                    AutovalidateMode.onUserInteraction,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: TextFormField(
+                                key: _signupConfirmKey,
+                                decoration: const InputDecoration(
+                                    labelText: "Confirm password"),
+                                obscureText: true,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return "Please confirm your password";
+                                  }
+                                  if (value !=
+                                      _signupPasswordKey.currentState!.value) {
+                                    return "Passwords do not match";
+                                  }
+                                  return null;
+                                },
+                                autovalidateMode:
+                                    AutovalidateMode.onUserInteraction,
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.all(8.0),
+                              child: ElevatedButton(
+                                  child: const Text("Sign up"),
+                                  onPressed: () {
+                                    if (_signupKey.currentState!.validate()) {
+                                      //TODO: Implement Signup
+                                    }
+                                  }),
+                            )
+                          ],
+                        ),
+                      ),
+                    ),
+                  ))
+                ],
+              ),
             ],
           ),
         ));
