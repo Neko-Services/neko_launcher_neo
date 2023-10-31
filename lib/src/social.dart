@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:file_picker/file_picker.dart';
 import 'package:fimber_io/fimber_io.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:pocketbase/pocketbase.dart';
 
 import 'package:neko_launcher_neo/main.dart';
@@ -26,28 +26,38 @@ class NekoUser extends ChangeNotifier {
       required this.activityType,
       required this.activity,
       required this.lastActivity,
-      this.avatar =
-          "https://byxhhsabmioakiwfrcud.supabase.in/storage/v1/object/public/avatars/neko64.png"}) {
+      this.avatar = "https://neko.nil.services/neko64.png"}) {
     Fimber.i("Creating $name's profile. (UID: $uid)");
-    //TODO: Profile subscription
+    pb.collection("profiles").subscribe(uid, (e) {
+      name = e.record!.getStringValue("name");
+      activityType = ActivityType.values[e.record!.getIntValue("activity_type")];
+      activity = e.record!.getStringValue("activity_details");
+      lastActivity = DateTime.tryParse(e.record!.getStringValue("activity_timestamp")) ?? DateTime.now();
+      avatar = e.record!.getStringValue("avatar").isEmpty
+      ? "https://neko.nil.services/neko64.png"
+      : "https://neko.nil.services/api/files/profiles/$uid/${e.record!.getStringValue('avatar')}";
+    });
   }
 
   factory NekoUser.fromRow(RecordModel row) {
     return NekoUser(
-      uid: row.getStringValue("id"),
+      uid: row.id,
       name: row.getStringValue("name"),
       activityType: ActivityType.values[row.getIntValue("activity_type")],
       activity: row.getStringValue("activity_details"),
       lastActivity: DateTime.tryParse(row.getStringValue("activity_timestamp")) ?? DateTime.now(),
       avatar: row.getStringValue("avatar").isEmpty
       ? "https://neko.nil.services/neko64.png"
-      : "https://neko.nil.services/api/profiles/${row.getStringValue('id')}/${row.getStringValue('avatar')}",
+      : "https://neko.nil.services/api/files/profiles/${row.id}/${row.getStringValue('avatar')}",
     );
   }
 
   void updateActivity(ActivityType type, {String? details}) {
-    stdout.writeln("Updating activity");
-    //TODO: Implement activity update
+    pb.collection("profiles").update(uid, body: {
+      "activity_type": type.index,
+      "activity_details": details ?? "",
+      "activity_timestamp": DateTime.now().toUtc().toIso8601String()
+    });
   }
 
   Widget activityText() {
@@ -146,6 +156,7 @@ class _SocialState extends State<Social> {
                   tooltip: "Log out",
                   icon: const Icon(Icons.exit_to_app),
                   onPressed: () {
+                    pb.collection('profiles').unsubscribe();
                     userProfile!.removeListener(refreshState);
                     userProfile = null;
                     pb.authStore.clear();
@@ -179,36 +190,32 @@ class _SocialState extends State<Social> {
                                     minHeight: 128, minWidth: 128),
                                 icon: const Icon(Icons.camera_alt),
                                 onPressed: () {
-                                  {
-                                    FilePicker.platform
-                                        .pickFiles(
-                                      type: FileType.image,
-                                    )
-                                        .then((result) {
-                                      //* The image must be under 5MB in size
-                                      if (result != null &&
-                                          result.files.single.size < 5000000) {
-                                        //TODO: Implement avatar change
-                                      } else {
-                                        showDialog(
-                                          context: context,
-                                          builder: (context) => AlertDialog(
-                                            title: const Text("Error"),
-                                            content: const Text(
-                                                "The image must be under 2MB in size."),
-                                            actions: [
-                                              TextButton(
-                                                child: const Text("OK"),
-                                                onPressed: () {
-                                                  Navigator.of(context).pop();
-                                                },
-                                              )
-                                            ],
-                                          ),
-                                        );
-                                      }
-                                    });
-                                  }
+                                  FilePicker.platform.pickFiles(type: FileType.image).then((result) async {
+                                    //* The image must be under 5MB in size
+                                    if (result != null && result.files.single.size < 5000000) {
+                                      final path = result.files.single.path!;
+                                      pb.collection("profiles").update(userProfile!.uid, files: [
+                                        await http.MultipartFile.fromPath("avatar", path)
+                                      ]);
+                                    } else {
+                                      showDialog(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: const Text("Error"),
+                                          content: const Text(
+                                              "The image must be under 2MB in size."),
+                                          actions: [
+                                            TextButton(
+                                              child: const Text("OK"),
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                              },
+                                            )
+                                          ],
+                                        ),
+                                      );
+                                    }
+                                  });
                                 },
                               ),
                             ),
