@@ -60,7 +60,7 @@ void main() async {
   Fimber.i("Starting Neko Launcher Neo.");
   if (pb.authStore.isValid) {
     Fimber.i("User is logged in.");
-    final profileData = await pb.collection("profiles").getFirstListItem("user.id = '${pb.authStore.model.getStringValue('id')}'");
+    final profileData = await pb.collection("profiles").getFirstListItem("user.id = '${pb.authStore.model.id}'");
     userProfile = NekoUser.fromRow(profileData);
   } else {
     Fimber.i("User is not logged in.");

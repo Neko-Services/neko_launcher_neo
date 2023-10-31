@@ -38,8 +38,10 @@ class NekoUser extends ChangeNotifier {
       name: row.getStringValue("name"),
       activityType: ActivityType.values[row.getIntValue("activity_type")],
       activity: row.getStringValue("activity_details"),
-      lastActivity: row.getDataValue<DateTime>("activity_timestamp"),
-      avatar: row.getStringValue("avatar"),
+      lastActivity: DateTime.tryParse(row.getStringValue("activity_timestamp")) ?? DateTime.now(),
+      avatar: row.getStringValue("avatar").isEmpty
+      ? "https://neko.nil.services/neko64.png"
+      : "https://neko.nil.services/api/profiles/${row.getStringValue('id')}/${row.getStringValue('avatar')}",
     );
   }
 
@@ -96,7 +98,7 @@ class _SocialState extends State<Social> {
 
   Future<void> _load() async {
     try {
-      final response = await pb.collection("profiles").getFirstListItem("user.id = '${pb.authStore.model.getStringValue('id')}'");
+      final response = await pb.collection("profiles").getFirstListItem("user.id = '${pb.authStore.model.id}'");
       userProfile = NekoUser.fromRow(response);
     } catch (e) {
       Fimber.e("Error loading user profile: $e");
@@ -144,9 +146,9 @@ class _SocialState extends State<Social> {
                   tooltip: "Log out",
                   icon: const Icon(Icons.exit_to_app),
                   onPressed: () {
-                    pb.authStore.clear();
                     userProfile!.removeListener(refreshState);
                     userProfile = null;
+                    pb.authStore.clear();
                     Navigator.pushReplacementNamed(
                       context,
                       "/",
@@ -257,26 +259,82 @@ class _SignInState extends State<SignIn> {
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
-              ElevatedButton(child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Padding(
-                    padding: const EdgeInsets.only(right: 8.0),
-                    child: Image.network(
-                      "https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6cc3c481a15a141738_icon_clyde_white_RGB.png",
-                      height: 16,
-                      isAntiAlias: true,
-                      filterQuality: FilterQuality.medium,
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: ElevatedButton(child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 16.0),
+                      child: Image.asset(
+                        "assets/discord.png",
+                        height: 16,
+                        isAntiAlias: true,
+                        filterQuality: FilterQuality.medium,
+                      ),
                     ),
-                  ),
-                  const Text("Login using Discord"),
-                ],
+                    const Text("Sign in using Discord"),
+                  ],
+                ),
+                onPressed: () {
+                  pb.collection("users").authWithOAuth2("discord", (url) {
+                    launchUrl(url);
+                  }).then((authRecord) {
+                    if (authRecord.record != null) {
+                      pb.collection("profiles").getFullList(filter: "user.id = '${authRecord.record!.id}'").then((list) {
+                        if (list.isEmpty) {
+                          pb.collection("profiles").create(body: {
+                            "user": authRecord.record!.id,
+                            "name": authRecord.record!.getStringValue("username"),
+                            "public": true
+                          });
+                        }
+                        userProfile = NekoUser.fromRow(list[0]);
+                        Navigator.of(context).pop();
+                      });
+                    }
+                  });
+                }
+                ),
               ),
-              onPressed: () {
-                pb.collection("users").authWithOAuth2("discord", (url) {
-                  launchUrl(url);
-                });
-              }
+              Padding(
+                padding: const EdgeInsets.all(8.0),
+                child: ElevatedButton(child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.only(right: 16.0),
+                      child: Image.asset(
+                        "assets/github.png",
+                        height: 16,
+                        isAntiAlias: true,
+                        filterQuality: FilterQuality.medium,
+                      ),
+                    ),
+                    const Text("Sign in using Github"),
+                  ],
+                ),
+                onPressed: () {
+                  pb.collection("users").authWithOAuth2("github", (url) {
+                    launchUrl(url);
+                  }).then((authRecord) {
+                    if (authRecord.record != null) {
+                      pb.collection("profiles").getFullList(filter: "user.id = '${authRecord.record!.id}'").then((list) {
+                        if (list.isEmpty) {
+                          pb.collection("profiles").create(body: {
+                            "user": authRecord.record!.id,
+                            "name": authRecord.record!.getStringValue("username"),
+                            "activity_type": 0,
+                            "public": true
+                          });
+                        }
+                        userProfile = NekoUser.fromRow(list[0]);
+                        Navigator.of(context).pop();
+                      });
+                    }
+                  });
+                }
+                ),
               ),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -302,6 +360,12 @@ class _SignInState extends State<SignIn> {
                                 key: _signinEmailKey,
                                 decoration:
                                     const InputDecoration(labelText: "E-mail"),
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return "Please enter your e-mail.";
+                                  } 
+                                  return null;
+                                },
                               ),
                             ),
                             Padding(
@@ -311,6 +375,12 @@ class _SignInState extends State<SignIn> {
                                 decoration:
                                     const InputDecoration(labelText: "Password"),
                                 obscureText: true,
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return "Please enter your password.";
+                                  } 
+                                  return null;
+                                },
                               ),
                             ),
                             Padding(
@@ -319,7 +389,30 @@ class _SignInState extends State<SignIn> {
                                   child: const Text("Sign in"),
                                   onPressed: () async {
                                     if (_signinKey.currentState!.validate()) {
-                                      //TODO: Implement Login
+                                      pb.collection("users").authWithPassword(_signinEmailKey.currentState!.value, _signinPasswordKey.currentState!.value).then((authRecord) {
+                                        if (authRecord.record != null) {
+                                          pb.collection("profiles").getFirstListItem("user.id = '${authRecord.record!.id}'").then((record) {
+                                            userProfile = NekoUser.fromRow(record);
+                                            Navigator.of(context).pop();
+                                          });
+                                        }
+                                      }, onError: (error) {
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: const Text("Error"),
+                                            content: Text(error.response["message"]),
+                                            actions: [
+                                              TextButton(
+                                                child: const Text("OK"),
+                                                onPressed: () {
+                                                  Navigator.of(context).pop();
+                                                },
+                                              )
+                                            ],
+                                          ),
+                                        );
+                                      });
                                     }
                                   }),
                             )
@@ -348,16 +441,16 @@ class _SignInState extends State<SignIn> {
                               padding: const EdgeInsets.all(8.0),
                               child: TextFormField(
                                 key: _signupUsernameKey,
+                                autovalidateMode: AutovalidateMode.onUserInteraction,
                                 decoration:
                                     const InputDecoration(labelText: "Username"),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return "Please enter your username";
+                                    return "Please enter your username.";
                                   }
                                   if (value.length < 3) {
-                                    return "Username must be at least 3 characters";
+                                    return "Username must be at least 3 characters.";
                                   }
-                                  //TODO: Implement username checking
                                   return null;
                                 },
                               ),
@@ -370,12 +463,12 @@ class _SignInState extends State<SignIn> {
                                     const InputDecoration(labelText: "E-mail"),
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return "Please enter your e-mail";
+                                    return "Please enter your e-mail.";
                                   }
                                   if (!RegExp(
                                           r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+")
                                       .hasMatch(value)) {
-                                    return "Please enter a valid e-mail";
+                                    return "Please enter a valid e-mail.";
                                   }
                                   return null;
                                 },
@@ -392,13 +485,13 @@ class _SignInState extends State<SignIn> {
                                 obscureText: true,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return "Please enter your password";
+                                    return "Please enter your password.";
                                   }
                                   if (value.length < 8) {
-                                    return "Password must be at least 8 characters long";
+                                    return "Password must be at least 8 characters long.";
                                   }
                                   if (!value.contains(RegExp(r"[0-9]"))) {
-                                    return "Password must contain at least one number";
+                                    return "Password must contain at least one number.";
                                   }
                                   return null;
                                 },
@@ -415,11 +508,11 @@ class _SignInState extends State<SignIn> {
                                 obscureText: true,
                                 validator: (value) {
                                   if (value == null || value.isEmpty) {
-                                    return "Please confirm your password";
+                                    return "Please confirm your password.";
                                   }
                                   if (value !=
                                       _signupPasswordKey.currentState!.value) {
-                                    return "Passwords do not match";
+                                    return "Passwords do not match.";
                                   }
                                   return null;
                                 },
@@ -433,7 +526,39 @@ class _SignInState extends State<SignIn> {
                                   child: const Text("Sign up"),
                                   onPressed: () {
                                     if (_signupKey.currentState!.validate()) {
-                                      //TODO: Implement Signup
+                                      pb.collection("users").create(body: {
+                                        "username": _signupUsernameKey.currentState!.value,
+                                        "email": _signupEmailKey.currentState!.value,
+                                        "password": _signupPasswordKey.currentState!.value,
+                                        "passwordConfirm": _signupConfirmKey.currentState!.value
+                                      }).then((authRecord) {
+                                        pb.collection("users").authWithPassword(_signupUsernameKey.currentState!.value, _signupPasswordKey.currentState!.value).then((_) {
+                                          pb.collection("profiles").create(body: {
+                                          "user": authRecord.id,
+                                          "name": _signupUsernameKey.currentState!.value,
+                                          "public": true
+                                        }).then((record) {
+                                            userProfile = NekoUser.fromRow(record);
+                                            Navigator.of(context).pop();
+                                          });
+                                        });
+                                      }).catchError((error) {
+                                        showDialog(
+                                          context: context,
+                                          builder: (context) => AlertDialog(
+                                            title: const Text("Error"),
+                                            content: Text("${(error.response['data']['username'] != null) ? 'Username already in use.' : ''} ${(error.response['data']['email'] != null) ? 'E-mail already in use.' : ''}".trim()),
+                                            actions: [
+                                              TextButton(
+                                                child: const Text("OK"),
+                                                onPressed: () {
+                                                  Navigator.of(context).pop();
+                                                },
+                                              )
+                                            ],
+                                          ),
+                                        );
+                                      });
                                     }
                                   }),
                             )
