@@ -19,6 +19,9 @@ class NekoUser extends ChangeNotifier {
   String? activity;
   DateTime? lastActivity;
   String avatar;
+  List<String> friends;
+  bool isFriend;
+  List<NekoUser> friendProfiles = [];
 
   NekoUser(
       {required this.uid,
@@ -26,7 +29,9 @@ class NekoUser extends ChangeNotifier {
       required this.activityType,
       required this.activity,
       required this.lastActivity,
-      this.avatar = "https://neko.nil.services/neko64.png"}) {
+      required this.friends,
+      this.avatar = "https://neko.nil.services/neko64.png",
+      this.isFriend = false}) {
     Fimber.i("Creating $name's profile. (UID: $uid)");
     pb.collection("profiles").subscribe(uid, (e) {
       name = e.record!.getStringValue("name");
@@ -36,10 +41,19 @@ class NekoUser extends ChangeNotifier {
       avatar = e.record!.getStringValue("avatar").isEmpty
       ? "https://neko.nil.services/neko64.png"
       : "https://neko.nil.services/api/files/profiles/$uid/${e.record!.getStringValue('avatar')}";
+      friends = isFriend ? [] : e.record!.getListValue<String>("friends");
     });
+    if (!isFriend) {
+      pb.realtime.subscribe("heartbeat", (e) { });
+      for (var friend in friends) {
+        pb.collection("profiles").getFirstListItem("user.id = '$friend'").then((friendRow) {
+          friendProfiles.add(NekoUser.fromRow(friendRow, isFriend: true));
+        });
+      }
+    }
   }
 
-  factory NekoUser.fromRow(RecordModel row) {
+  factory NekoUser.fromRow(RecordModel row, {bool isFriend = false}) {
     return NekoUser(
       uid: row.id,
       name: row.getStringValue("name"),
@@ -49,6 +63,8 @@ class NekoUser extends ChangeNotifier {
       avatar: row.getStringValue("avatar").isEmpty
       ? "https://neko.nil.services/neko64.png"
       : "https://neko.nil.services/api/files/profiles/${row.id}/${row.getStringValue('avatar')}",
+      friends: isFriend ? [] : row.getListValue<String>("friends"),
+      isFriend: isFriend
     );
   }
 
@@ -146,6 +162,27 @@ class _SocialState extends State<Social> {
 
   @override
   Widget build(BuildContext context) {
+    List<TableRow> friendsList = [];
+    for (var friend in userProfile!.friendProfiles) {
+      friendsList.add(TableRow(
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: CircleAvatar(radius:48, backgroundColor: Colors.transparent, foregroundImage: NetworkImage(friend.avatar)),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: Text(friend.name, style: const TextStyle(fontSize: 20)),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              friend.activityText(),
+            ],
+          ),
+        ]
+      ));
+    }
     return _isLoading
         ? const Scaffold(body: Center(child: CircularProgressIndicator()))
         : Scaffold(
@@ -156,7 +193,8 @@ class _SocialState extends State<Social> {
                   tooltip: "Log out",
                   icon: const Icon(Icons.exit_to_app),
                   onPressed: () {
-                    pb.collection('profiles').unsubscribe();
+                    pb.realtime.unsubscribe();
+                    userProfile!.updateActivity(ActivityType.offline);
                     userProfile!.removeListener(refreshState);
                     userProfile = null;
                     pb.authStore.clear();
@@ -203,7 +241,7 @@ class _SocialState extends State<Social> {
                                         builder: (context) => AlertDialog(
                                           title: const Text("Error"),
                                           content: const Text(
-                                              "The image must be under 2MB in size."),
+                                              "The image must be under 5MB in size."),
                                           actions: [
                                             TextButton(
                                               child: const Text("OK"),
@@ -223,8 +261,19 @@ class _SocialState extends State<Social> {
                               userProfile!.name,
                               style: const TextStyle(fontSize: 24),
                             ),
-                            userProfile?.activityText() ??
-                                const SizedBox.shrink(),
+                            userProfile?.activityText() ?? const SizedBox.shrink(),
+                            const Divider(),
+                            const Text("Friends", style: Styles.cardHeader,),
+                            SingleChildScrollView(
+                              child: Table(
+                                columnWidths: const {
+                                  0: FixedColumnWidth(80),
+                                  1: IntrinsicColumnWidth()
+                                },
+                                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
+                                children: friendsList,
+                              ),
+                            )
                           ],
                         ),
                       ),
