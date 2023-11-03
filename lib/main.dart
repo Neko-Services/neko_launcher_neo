@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
@@ -65,6 +66,11 @@ void main() async {
   } else {
     Fimber.i("User is not logged in.");
   }
+  Timer.periodic(const Duration(minutes: 30), (t) {
+    if (pb.authStore.isValid) {
+      pb.collection("users").authRefresh();
+    }
+  });
   runApp(const MyApp());
 }
 
