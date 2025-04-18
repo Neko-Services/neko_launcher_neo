@@ -3,6 +3,7 @@ import 'dart:math' as maths;
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:desktop_drop/desktop_drop.dart';
 import 'package:fimber_io/fimber_io.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -34,6 +35,7 @@ class Game extends ChangeNotifier {
   bool favourite = false;
   bool nsfw = false;
   bool vndbIntegration = false;
+  int added = 0;
   String? vndbid;
   VNDB? vndb;
   late ImageProvider<Object> imgProvider;
@@ -63,6 +65,7 @@ class Game extends ChangeNotifier {
     }
     File(path).createSync();
     stdout.writeln(file.parent.path);
+    added = DateTime.now().millisecondsSinceEpoch;
     name = file.parent.path.split(Platform.pathSeparator).last;
     save();
     resolveImageProvider();
@@ -73,6 +76,8 @@ class Game extends ChangeNotifier {
   void resolveImageProvider() {
     if (bg.startsWith("http")) {
       imgProvider = NetworkImage(bg);
+    } else if (bg.isEmpty) {
+      imgProvider = Styles.nullImage;
     } else {
       imgProvider = FileImage(File(bg));
     }
@@ -109,6 +114,7 @@ class Game extends ChangeNotifier {
       nsfw = json["nsfw"] ?? false;
       vndbIntegration = json["vndb"] ?? false;
       vndbid = json["vndbid"];
+      added = json["added"] ?? 0;
       if (vndbIntegration) {
         if (vndb == null) {
           if (vndbid != null && vndbid != "") {
@@ -145,6 +151,7 @@ class Game extends ChangeNotifier {
       "emulate": emulate,
       "is_favourite": favourite,
       "nsfw": nsfw,
+      "added": added,
       "vndb": vndbIntegration,
       "vndbid": vndbid
     };
@@ -175,9 +182,9 @@ class Game extends ChangeNotifier {
       builder: (BuildContext context) {
         return AlertDialog(
           title: Text("Delete $name?"),
-          content: SingleChildScrollView(
+          content: const SingleChildScrollView(
             child: ListBody(
-              children: const [
+              children: [
                 Text("Are you sure you want to delete this game?"),
                 Text(
                   "All recorded activity will be lost.",
@@ -1091,6 +1098,8 @@ enum Sorting {
   nameDesc,
   timeAsc,
   timeDesc,
+  addedAsc,
+  addedDesc
 }
 
 enum Filtering { all, favourite, neverPlayed }
@@ -1108,6 +1117,8 @@ class GameListState extends State<GameList> {
   bool onHomeScreen = true;
   final _sortingKey = GlobalKey<PopupMenuButtonState>();
 
+  bool _dragging = false;
+
   void sort() {
     Fimber.i("Sorting game list: $sorting.");
     switch (sorting) {
@@ -1122,6 +1133,24 @@ class GameListState extends State<GameList> {
         break;
       case Sorting.timeDesc:
         view.sort((a, b) => b.time.compareTo(a.time));
+        break;
+      case Sorting.addedAsc:
+        view.sort((a, b) {
+          var result = a.added.compareTo(b.added);
+          if (result == 0) {
+            result = a.name.compareTo(b.name);
+          }
+          return result;
+        });
+        break;
+      case Sorting.addedDesc:
+        view.sort((a, b) {
+          var result = b.added.compareTo(a.added);
+          if (result == 0) {
+            result = a.name.compareTo(b.name);
+          }
+          return result;
+        });
         break;
     }
   }
@@ -1283,157 +1312,203 @@ class GameListState extends State<GameList> {
   Widget build(BuildContext context) {
     Fimber.i("Building GameList widget.");
     sort();
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              IconButton(
-                  tooltip: "View homescreen",
-                  splashRadius: Styles.splash,
-                  padding: const EdgeInsets.all(1),
-                  icon: const Icon(Icons.home),
-                  onPressed: onHomeScreen ? null : () {
-                    disableHome();
-                    navigatorKey.currentState!.pushReplacementNamed(
-                      "/",
-                    );
-                  }),
-              const Expanded(
-                child: Center(
-                  child: Text(
-                    "Games",
-                    style: TextStyle(
-                      fontSize: 20,
+    return DropTarget(
+      onDragDone: (details) {
+        for (var file in details.files) {
+          if (file.path.endsWith(".exe") || Platform.isLinux) {
+            Game.fromExe(file.path);
+          }
+        }
+      },
+      onDragEntered: (details) {
+        setState(() {
+          _dragging = true;
+        });
+      },
+      onDragExited: (details) {
+        setState(() {
+          _dragging = false;
+        });
+      },
+      child: Stack(
+        children: [
+          Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  IconButton(
+                      tooltip: "View homescreen",
+                      splashRadius: Styles.splash,
+                      padding: const EdgeInsets.all(1),
+                      icon: const Icon(Icons.home),
+                      onPressed: onHomeScreen ? null : () {
+                        disableHome();
+                        navigatorKey.currentState!.pushReplacementNamed(
+                          "/",
+                        );
+                      }),
+                  const Expanded(
+                    child: Center(
+                      child: Text(
+                        "Games",
+                        style: TextStyle(
+                          fontSize: 20,
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-              Theme(
-                data: Theme.of(context).copyWith(
-                  splashColor: Colors.transparent,
-                  hoverColor: Colors.transparent,
-                ),
-                child: PopupMenuButton(
-                    key: _sortingKey,
-                    tooltip: "Change sorting",
-                    child: IconButton(
-                      hoverColor: Theme.of(context).hoverColor,
-                      splashColor: Theme.of(context).splashColor,
-                      splashRadius: Styles.splash,
-                      icon: const Icon(Icons.filter_list),
-                      onPressed: () =>
-                          _sortingKey.currentState!.showButtonMenu(),
+                  Theme(
+                    data: Theme.of(context).copyWith(
+                      splashColor: Colors.transparent,
+                      hoverColor: Colors.transparent,
                     ),
-                    itemBuilder: (BuildContext context) =>
-                        <PopupMenuEntry<Sorting>>[
-                          const PopupMenuItem<Sorting>(
-                            value: Sorting.nameAsc,
-                            child: Text("Name (A-Z)"),
+                    child: PopupMenuButton(
+                        key: _sortingKey,
+                        tooltip: "Change sorting",
+                        child: IconButton(
+                          hoverColor: Theme.of(context).hoverColor,
+                          splashColor: Theme.of(context).splashColor,
+                          splashRadius: Styles.splash,
+                          icon: const Icon(Icons.filter_list),
+                          onPressed: () =>
+                              _sortingKey.currentState!.showButtonMenu(),
+                        ),
+                        itemBuilder: (BuildContext context) =>
+                            <PopupMenuEntry<Sorting>>[
+                              const PopupMenuItem<Sorting>(
+                                value: Sorting.nameAsc,
+                                child: Text("Name (A-Z)"),
+                              ),
+                              const PopupMenuItem<Sorting>(
+                                value: Sorting.nameDesc,
+                                child: Text("Name (Z-A)"),
+                              ),
+                              const PopupMenuItem<Sorting>(
+                                value: Sorting.timeDesc,
+                                child: Text("Most played"),
+                              ),
+                              const PopupMenuItem<Sorting>(
+                                value: Sorting.timeAsc,
+                                child: Text("Least played"),
+                              ),
+                              const PopupMenuItem<Sorting>(
+                                value: Sorting.addedDesc,
+                                child: Text("Newest"),
+                              ),
+                              const PopupMenuItem<Sorting>(
+                                value: Sorting.addedAsc,
+                                child: Text("Oldest"),
+                              )
+                            ],
+                        onSelected: (Sorting s) {
+                          setState(() {
+                            sorting = s;
+                          });
+                        }),
+                  ),
+                ],
+              ),
+            ),
+            games.isNotEmpty
+                ? view.isNotEmpty 
+                  ? Expanded(
+                      child: ListView.builder(
+                        physics: const BouncingScrollPhysics(decelerationRate: ScrollDecelerationRate.fast),
+                        itemCount: view.length,
+                        itemBuilder: (context, index) {
+                          return GameButton(
+                            game: view[index],
+                            onTap: () {
+                              enableHome();
+                              view[index].update();
+                              if (navigatorKey.currentState!.canPop()) {
+                                navigatorKey.currentState!.pop();
+                              }
+                              navigatorKey.currentState!.pushReplacementNamed(
+                                "/game",
+                                arguments: view[index],
+                              );
+                            },
+                          );
+                        },
+                      ),
+                    )
+                  : Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Center(
+                          child: Text("Nothing found... ",
+                              style: TextStyle(
+                                  fontSize: 24,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onBackground)),
+                        ),
+                      ],
+                    ),
+                  )
+                : Expanded(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(
+                          child: Center(
+                            child: Text("It's empty here... ",
+                                style: TextStyle(
+                                    fontSize: 24,
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onBackground)),
                           ),
-                          const PopupMenuItem<Sorting>(
-                            value: Sorting.nameDesc,
-                            child: Text("Name (Z-A)"),
+                        ),
+                        const Padding(
+                          padding: EdgeInsets.only(bottom: 20.0),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [Icon(Icons.arrow_forward, size: 40)],
                           ),
-                          const PopupMenuItem<Sorting>(
-                            value: Sorting.timeDesc,
-                            child: Text("Most played"),
+                        )
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            decoration: const InputDecoration(labelText: "Search...", prefixIcon: Icon(Icons.search)),
+                            onChanged: search,
                           ),
-                          const PopupMenuItem<Sorting>(
-                            value: Sorting.timeAsc,
-                            child: Text("Least played"),
-                          ),
-                        ],
-                    onSelected: (Sorting s) {
-                      setState(() {
-                        sorting = s;
-                      });
-                    }),
+                        ),
+                      ],
+                    )
+                  )
+          ],
+        ),
+        if (_dragging) 
+          Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Expanded(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.black.withOpacity(0.8)
+                  ),
+                  child: const Center(child: Text("Drop to add game.", style: Styles.bold,))
+                ),
               ),
             ],
           ),
-        ),
-        games.isNotEmpty
-            ? view.isNotEmpty 
-              ? Expanded(
-                  child: ListView.builder(
-                    physics: const BouncingScrollPhysics(decelerationRate: ScrollDecelerationRate.fast),
-                    itemCount: view.length,
-                    itemBuilder: (context, index) {
-                      return GameButton(
-                        game: view[index],
-                        onTap: () {
-                          enableHome();
-                          view[index].update();
-                          if (navigatorKey.currentState!.canPop()) {
-                            navigatorKey.currentState!.pop();
-                          }
-                          navigatorKey.currentState!.pushReplacementNamed(
-                            "/game",
-                            arguments: view[index],
-                          );
-                        },
-                      );
-                    },
-                  ),
-                )
-              : Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Center(
-                      child: Text("Nothing found... ",
-                          style: TextStyle(
-                              fontSize: 24,
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onBackground)),
-                    ),
-                  ],
-                ),
-              )
-            : Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Center(
-                        child: Text("It's empty here... ",
-                            style: TextStyle(
-                                fontSize: 24,
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onBackground)),
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 20.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.end,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: const [Icon(Icons.arrow_forward, size: 40)],
-                      ),
-                    )
-                  ],
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.all(8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        decoration: const InputDecoration(labelText: "Search...", prefixIcon: Icon(Icons.search)),
-                        onChanged: search,
-                      ),
-                    ),
-                  ],
-                )
-              )
-      ],
+        ],
+      ),
     );
   }
 }

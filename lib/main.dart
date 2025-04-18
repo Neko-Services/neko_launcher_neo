@@ -31,7 +31,7 @@ final launcherConfig = LauncherConfig(Platform.isLinux
     : File("${Platform.environment["APPDATA"]!}\\neko-launcher\\config.json"));
 
 //! Update before publishing
-const launcherVersion = "v0.5.0-alpha";
+const launcherVersion = "v0.4.9-alpha";
 
 late final PocketBase pb;
 final GameDaemon gameDaemon = GameDaemon();
@@ -84,6 +84,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       title: 'Neko Launcher',
       theme: ThemeData(
+          useMaterial3: false,
           scaffoldBackgroundColor: const Color(0xff161616),
           brightness: Brightness.dark,
           primarySwatch: Colors.pink,

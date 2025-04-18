@@ -84,6 +84,7 @@ abstract class Styles {
       TextStyle(fontSize: 36, fontWeight: FontWeight.bold);
   static const splash = 20.0;
   static const duration = Duration(milliseconds: 200);
+  static final nullImage = MemoryImage(kTransparentImage);
 
   static Map<String, String> prettyTime(time) {
     var s = time;
