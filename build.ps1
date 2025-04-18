@@ -10,9 +10,9 @@ if ($?) {
     if ($LASTEXITCODE -eq 0) {
         Write-Output "Copying necessary DLL files..."
         try {
-            Copy-Item "C:\Windows\System32\msvcp140.dll" ".\build\windows\runner\Release\"
-            Copy-Item "C:\Windows\System32\vcruntime140.dll" ".\build\windows\runner\Release\"
-            Copy-Item "C:\Windows\System32\vcruntime140_1.dll" ".\build\windows\runner\Release\"
+            Copy-Item "C:\Windows\System32\msvcp140.dll" ".\build\windows\x64\runner\Release\"
+            Copy-Item "C:\Windows\System32\vcruntime140.dll" ".\build\windows\x64\runner\Release\"
+            Copy-Item "C:\Windows\System32\vcruntime140_1.dll" ".\build\windows\x64\runner\Release\"
         } catch {
             Write-Error "Couldn't copy DLL files from System32."
             return
@@ -21,7 +21,7 @@ if ($?) {
         Remove-Item ".\archives\*" -Filter "*-$version-windows.zip"
         if ($?) {
             Write-Output "Packaging new archive..."
-            7z.exe a ".\archives\neko_launcher_neo-$version-windows.zip" ".\build\windows\runner\Release\*"
+            7z.exe a ".\archives\neko_launcher_neo-$version-windows.zip" ".\build\windows\x64\runner\Release\*"
             if ($LASTEXITCODE -eq 0) {
                 Write-Host "Building and packaging Neko Launcher Neo (v$version) complete!" -ForegroundColor Green
             } else {
